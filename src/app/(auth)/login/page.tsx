@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,48 +9,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
- * Login Page
- * Supports: Email/Password login + Google OAuth
+ * Login Form Component
  */
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check for error from URL (whitelist/auth failures)
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "not_whitelisted") {
+      setError(
+        "Tài khoản của bạn chưa được cấp quyền truy cập. Vui lòng liên hệ Admin."
+      );
+    } else if (errorParam === "auth_failed") {
+      setError("Đăng nhập thất bại. Vui lòng thử lại.");
+    }
+  }, [searchParams]);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
-
-  // Email/Password Login
-  const handleEmailLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        setError(error.message === "Invalid login credentials" 
-          ? "Email hoặc mật khẩu không đúng" 
-          : error.message);
-        return;
-      }
-
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      setError("Đã có lỗi xảy ra. Vui lòng thử lại.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Google OAuth Login
   const handleGoogleLogin = async () => {
@@ -118,57 +100,27 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Đăng nhập với Google
+            {loading ? "Đang chuyển hướng..." : "Đăng nhập với Google"}
           </Button>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-500">Hoặc</span>
-            </div>
-          </div>
-
-          {/* Email/Password Form */}
-          <form onSubmit={handleEmailLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your.email@eiu.edu.vn"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Mật khẩu</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
-            </Button>
-          </form>
 
           {/* Help Text */}
           <p className="text-center text-sm text-gray-500">
-            Quên mật khẩu? Liên hệ Admin để được hỗ trợ.
+            Chỉ những tài khoản được cấp phép mới có thể truy cập
           </p>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * Login Page (with Suspense boundary)
+ */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
 
