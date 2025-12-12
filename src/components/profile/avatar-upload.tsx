@@ -55,6 +55,9 @@ export function AvatarUpload({
 
     try {
       const supabase = createClient();
+      if (!supabase) {
+        throw new Error("Không thể kết nối đến server");
+      }
 
       // Generate unique filename
       const fileExt = file.name.split(".").pop();

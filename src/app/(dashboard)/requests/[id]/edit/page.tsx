@@ -42,6 +42,11 @@ export default function EditRequestPage() {
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Không thể kết nối đến server");
+        setLoading(false);
+        return;
+      }
       const requestId = params.id as string;
 
       // Fetch request with items

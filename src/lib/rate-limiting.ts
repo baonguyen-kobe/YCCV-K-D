@@ -31,6 +31,10 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   try {
     const supabase = await createClient();
+    if (!supabase) {
+      // Demo mode - allow all requests
+      return { allowed: true, remaining: limit, resetAt: new Date() };
+    }
 
     // Call the RPC function to check and increment rate limit
     const { data, error } = await supabase.rpc(
