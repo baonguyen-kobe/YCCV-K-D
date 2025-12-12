@@ -1,22 +1,44 @@
-# 🚀 NEXT STEPS - Hướng Dẫn Hoàn Tất Deployment
+# 🚀 NEXT STEPS - Deployment Progress
 
-## ✅ ĐÃ HOÀN THÀNH
+## ✅ COMPLETED
 
-- ✅ Git initialized và commit code
-- ✅ GitHub push thành công: https://github.com/baonguyen-kobe/YCCV-K-D
-- ✅ Secrets sanitized (không có .env committed)
-- ✅ Vercel đã được trigger auto-deploy
-- ✅ **Supabase Migration chạy thành công** - 12+ bảng dữ liệu đã tạo
+- ✅ Code cleaned up and organized
+- ✅ SQL files consolidated (kept only essential)
+- ✅ MD files simplified (removed duplicates)
+- ✅ Auth RLS fixes applied
+- ✅ FK relationship issue fixed (user_roles ambiguity)
+- ✅ Created DEPLOYMENT_QUICK.md guide
+
+### Files Structure:
+**SQL (Essential):**
+- ✅ `migrations/0001_full_schema.sql` - Main schema
+- ✅ `0002_auto_fix_auth_rls.sql` - Auth fixes
+- ✅ `0003_debug_auth_rls.sql` - Diagnostics
+- ✅ `seed_complete.sql`, `setup_storage.sql`, `avatar_storage.sql` - Optional
+
+**Docs:**
+- ✅ `README.md`, `DEPLOYMENT_QUICK.md`, `FEATURE_CHECKLIST.md`
+- ✅ `FIX_AUTH_RLS_SUMMARY.md`, `DATA_SCHEMA.md`
 
 ---
 
-## 📋 CÒN LẠI (Làm Thủ Công - 30 phút)
+## 📋 TODO - Deploy to Production (30 minutes)
 
-### 1️⃣ SUPABASE RLS CONFIGURATION (5 phút)
+**Quick Guide:** See [DEPLOYMENT_QUICK.md](DEPLOYMENT_QUICK.md) for step-by-step
 
-**⚠️ QUAN TRỌNG:** Đã phát hiện `auth_logs` table không có RLS policies. Bạn cần thêm policies để bảo mật dữ liệu.
+### 1️⃣ PUSH TO GITHUB (5 phút)
 
-#### Bước 1.1: Thêm RLS Policies cho auth_logs
+- [ ] Initialize git repo
+- [ ] Commit all changes
+- [ ] Create GitHub repo (private): `yccv-app`
+- [ ] Push code
+- [ ] Verify: Vercel auto-deploys
+
+### 2️⃣ SUPABASE DATABASE SETUP (10 phút)
+
+**Dashboard:** https://supabase.com/dashboard/project/jffinzioyizzuneqpwxl
+
+#### Step 2.1: Run Migrations
 
 - [ ] Vào **SQL Editor** trong Supabase
 - [ ] Click **New query** (tab mới)

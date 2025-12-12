@@ -73,6 +73,7 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
   if (!user) return null;
 
   // Fetch user profile with roles from database
+  // Use !inner hint to specify which FK to use (user_id, not assigned_by)
   const { data: profile, error: profileError } = await supabase
     .from("users")
     .select(
@@ -81,7 +82,7 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       email,
       full_name,
       unit_id,
-      user_roles (
+      user_roles!user_roles_user_id_fkey (
         role:roles (
           name
         )
@@ -104,10 +105,12 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
     console.warn('[AUTH] User not found in users table, attempting auto-create:', {
       userId: user.id,
       email: user.email,
-      error: profileError
+      error: profileError?.code,
+      message: profileError?.message,
     });
 
     // Try to create user profile automatically
+    // The trigger will auto-assign 'user' role
     const { data: newProfile, error: createError } = await supabase
       .from("users")
       .insert({
@@ -116,29 +119,58 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
         full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
         is_active: true,
       })
-      .select("id, email, full_name, unit_id")
+      .select("id, email, full_name, unit_id, is_active")
       .single();
 
     if (createError) {
-      // If the row already exists (duplicate key), this usually means RLS blocked
-      // the SELECT above, so the app couldn't see the existing profile.
-      // Treat as non-fatal and fall back to a safe default role.
+      // Common error codes:
+      // 23505 = unique_violation (duplicate key) - row already exists but RLS blocked SELECT
+      // 42501 = insufficient_privilege - RLS policy blocked the INSERT
+      // Other = unexpected error
       const errorCode = (createError as unknown as { code?: string })?.code;
-      if (errorCode === "23505") {
-        console.warn('[AUTH] Auto-create hit duplicate key (profile likely exists). Check RLS SELECT policies.', {
+      const errorMsg = (createError as unknown as { message?: string })?.message || "";
+      
+      if (errorCode === "23505" || errorMsg.includes("duplicate key")) {
+        console.warn('[AUTH] Auto-create hit duplicate key (profile likely exists, RLS may have blocked SELECT):', {
           userId: user.id,
           email: user.email,
+          code: errorCode,
         });
+        
+        // Fall back to default - on next page load it will retry with better RLS policies
         return {
           ...user,
-          roles: ["user"],
+          roles: ["user"], // Assume default role
           unitId: null,
           fullName: (user.user_metadata as any)?.full_name || user.email?.split("@")[0] || null,
           email: user.email || "",
         };
       }
 
-      console.error('[AUTH] Failed to auto-create user:', createError);
+      if (errorCode === "42501" || errorMsg.includes("permission")) {
+        console.error('[AUTH] RLS policy blocked user creation. Ensure RLS allows INSERT for auth.uid():', {
+          userId: user.id,
+          email: user.email,
+          code: errorCode,
+        });
+        
+        // Return with minimal info - user should contact admin
+        return {
+          ...user,
+          roles: [],
+          unitId: null,
+          fullName: null,
+          email: user.email || "",
+        };
+      }
+
+      console.error('[AUTH] Failed to auto-create user profile:', {
+        code: errorCode,
+        message: errorMsg,
+        userId: user.id,
+        email: user.email,
+      });
+      
       return {
         ...user,
         roles: [],
@@ -148,13 +180,16 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       };
     }
 
-    // Auto-create successful - return user profile with assumed default role
-    // Role assignment is done via RLS SELECT on user_roles table
-    console.log('[AUTH] User auto-created successfully:', newProfile?.id);
+    // Auto-create successful - user and trigger auto-assigned 'user' role
+    console.log('[AUTH] User auto-created successfully:', {
+      userId: newProfile?.id,
+      email: newProfile?.email,
+      fullName: newProfile?.full_name,
+    });
     
     return {
       ...user,
-      roles: ["user"], // Assumed default - actual roles load from DB on next check
+      roles: ["user"], // Assigned by trigger on INSERT
       unitId: newProfile?.unit_id || null,
       fullName: newProfile?.full_name || null,
       email: newProfile?.email || user.email || "",
