@@ -203,15 +203,13 @@ export function canEditRequest(user: UserForPermission, request: RequestForPermi
 export function canCreateRequest(user: UserForPermission): boolean {
   const canCreate = hasAnyRole(user, [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER]);
   
-  // Debug logging (remove after testing)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[PERMISSIONS] canCreateRequest:', { 
-      userId: user.id, 
-      roles: user.roles, 
-      canCreate,
-      requiredRoles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER]
-    });
-  }
+  // Always log for debugging
+  console.log('[PERMISSIONS] canCreateRequest:', { 
+    userId: user.id, 
+    roles: user.roles, 
+    canCreate,
+    requiredRoles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER]
+  });
   
   return canCreate;
 }

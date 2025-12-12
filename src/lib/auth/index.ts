@@ -72,7 +72,7 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
   if (!user) return null;
 
   // Fetch user profile with roles from database
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("users")
     .select(
       `
@@ -90,16 +90,25 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
     .eq("id", user.id)
     .single();
 
+  // Always log for debugging (not just development)
+  console.log('[AUTH] Profile query result:', { 
+    hasProfile: !!profile,
+    profileError,
+    userId: user.id,
+    email: user.email
+  });
+
   if (!profile) {
     // User exists in auth but not in users table
-    // ASSUMPTION: This shouldn't happen with whitelist approach
-    // Log this case for debugging
-    console.warn(`User ${user.id} exists in auth but not in users table`);
+    console.error('[AUTH] User not found in users table:', {
+      userId: user.id,
+      email: user.email,
+      error: profileError
+    });
     return {
       ...user,
       roles: [],
       unitId: null,
-
       fullName: null,
       email: user.email || "",
     };
@@ -109,15 +118,14 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const roles = (profile.user_roles as any[])?.map((ur) => ur.role?.name).filter(Boolean) || [];
 
-  // Debug logging (remove after testing)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[AUTH] User roles loaded:', { 
-      email: profile.email, 
-      roles, 
-      unitId: profile.unit_id,
-      raw_user_roles: profile.user_roles 
-    });
-  }
+  // Always log roles for debugging
+  console.log('[AUTH] User roles loaded:', { 
+    email: profile.email, 
+    roles, 
+    unitId: profile.unit_id,
+    raw_user_roles: profile.user_roles,
+    roles_count: roles.length
+  });
 
   return {
     ...user,
