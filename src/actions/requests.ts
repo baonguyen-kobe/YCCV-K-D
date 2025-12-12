@@ -87,7 +87,7 @@ async function getRequestForPermission(
  * Call update_request_with_locking RPC for optimistic locking
  */
 async function updateRequestWithLocking(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   params: {
     request_id: string;
     current_version: number;
@@ -126,7 +126,7 @@ async function updateRequestWithLocking(
  * Call create_request_atomic RPC for atomic creation
  */
 async function createRequestAtomic(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   params: {
     reason: string;
     priority: Priority;
@@ -170,7 +170,7 @@ async function createRequestAtomic(
  * Call update_request_atomic RPC for atomic update
  */
 async function updateRequestAtomic(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
   params: {
     request_id: string;
     current_version: number;
@@ -251,6 +251,7 @@ export async function createRequest(
 
   const validatedInput = validation.data!;
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
 
   // Get user's unit info for snapshot
   const { data: userProfile } = await supabase
@@ -448,6 +449,7 @@ export async function submitRequest(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
   const request = await getRequestForPermission(supabase, requestId);
 
   if (!request) {
@@ -513,6 +515,7 @@ export async function assignRequest(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
   const request = await getRequestForPermission(supabase, requestId);
 
   if (!request) {
@@ -613,6 +616,7 @@ export async function updateRequestStatus(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
   const request = await getRequestForPermission(supabase, requestId);
 
   if (!request) {
@@ -729,6 +733,7 @@ export async function addComment(
 
   const validatedInput = validation.data!;
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
   const request = await getRequestForPermission(supabase, requestId);
 
   if (!request) {
@@ -789,6 +794,7 @@ export async function getStaffList(): Promise<ActionResult<{ id: string; name: s
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
 
   // Get staff role ID
   const { data: staffRole } = await supabase
@@ -871,6 +877,7 @@ export async function uploadAttachment(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
 
   // Check attachment count if request specified
   if (requestId) {
@@ -957,6 +964,7 @@ export async function deleteAttachment(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
 
   // Get attachment
   const { data: attachment } = await supabase
@@ -1015,6 +1023,7 @@ export async function getAttachments(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
 
   const { data: attachments, error } = await supabase
     .from("attachments")
@@ -1085,6 +1094,8 @@ export async function searchRequests(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
+  
   const userForPermission = toUserForPermission(user);
   
   const isAdminUser = isAdmin(userForPermission);
@@ -1166,6 +1177,8 @@ export async function getDashboardStats(): Promise<ActionResult<DashboardStats>>
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
+  
   const userForPermission = toUserForPermission(user);
   
   const isAdminUser = isAdmin(userForPermission);
