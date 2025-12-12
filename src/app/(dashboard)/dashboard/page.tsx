@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   // Use mock data in demo mode
   if (isMockMode()) {
     stats = getMockStats(user);
-    recentRequests = getMockRequestsWithRelations(user).slice(0, 5);
+    recentRequests = getMockRequestsWithRelations().slice(0, 5);
   } else {
     const supabase = await createClient();
     if (!supabase) {

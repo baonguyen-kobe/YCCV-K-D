@@ -49,7 +49,7 @@ export default async function RequestsPage({ searchParams }: PageProps) {
 
   if (isMockMode()) {
     // Use mock data in demo mode
-    let mockRequests = getMockRequestsWithRelations(user);
+    let mockRequests = getMockRequestsWithRelations();
 
     // Apply role-based filters
     const isAdminUser = isAdmin(user);
