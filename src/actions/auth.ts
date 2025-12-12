@@ -43,6 +43,9 @@ export async function signInWithPassword(
  */
 export async function signOut(): Promise<ActionResult> {
   const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối. Vui lòng thử lại." };
+  }
 
   const { error } = await supabase.auth.signOut();
 
