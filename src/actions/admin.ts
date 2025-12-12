@@ -160,6 +160,9 @@ export async function updateUser(input: UpdateUserInput): Promise<ActionResult> 
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
 
   // Update user profile
   const updateData: Record<string, unknown> = {};
