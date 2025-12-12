@@ -225,7 +225,7 @@ async function getDashboardStats(supabase: any, user: UserForDashboard) {
   };
 
   // Get counts in parallel
-  const [newResult, inProgressResult, doneResult, needInfoResult, assignedResult] = await Promise.all([
+  const [newResult, inProgressResult, doneResult, needInfoResult, assignedResult, myRequestsResult, myTasksResult] = await Promise.all([
     buildQuery(["NEW"]),
     buildQuery(["ASSIGNED", "IN_PROGRESS"]),
     // Done this month
@@ -236,6 +236,18 @@ async function getDashboardStats(supabase: any, user: UserForDashboard) {
       .gte("completed_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
     buildQuery(["NEED_INFO"]),
     buildQuery(["ASSIGNED"]),
+    // My requests (created by me, not done/cancelled)
+    supabase
+      .from("requests")
+      .select("id", { count: "exact", head: true })
+      .eq("created_by", user.id)
+      .not("status", "in", "(DONE,CANCELLED)"),
+    // My tasks (assigned to me, in progress)
+    supabase
+      .from("requests")
+      .select("id", { count: "exact", head: true })
+      .eq("assignee_id", user.id)
+      .in("status", ["ASSIGNED", "IN_PROGRESS", "NEED_INFO"]),
   ]);
 
   // Get overdue count (items with required_at in the past and not DONE/CANCELLED)
@@ -252,6 +264,8 @@ async function getDashboardStats(supabase: any, user: UserForDashboard) {
     overdueCount: overdueCount || 0,
     needInfoCount: needInfoResult.count || 0,
     pendingAssignment: assignedResult.count || 0,
+    myRequestsCount: myRequestsResult.count || 0,
+    myTasksCount: myTasksResult.count || 0,
   };
 }
 
