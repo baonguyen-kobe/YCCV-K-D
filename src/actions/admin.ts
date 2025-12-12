@@ -230,6 +230,9 @@ export async function toggleUserStatus(userId: string): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
 
   // Get current status
   const { data: targetUser } = await supabase
@@ -291,6 +294,9 @@ export async function upsertCategory(input: UpsertCategoryInput): Promise<Action
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
 
   const categoryData = {
     name: input.name.trim(),
@@ -349,6 +355,9 @@ export async function deleteCategory(categoryId: string): Promise<ActionResult> 
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
 
   // Check if category is being used
   const { count } = await supabase
@@ -403,6 +412,9 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ActionRe
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
 
   const updateData: Record<string, unknown> = {};
   if (input.full_name !== undefined) updateData.full_name = input.full_name.trim();
