@@ -148,29 +148,13 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       };
     }
 
-    // Assign default 'user' role
-    const { data: userRole } = await supabase
-      .from("roles")
-      .select("id")
-      .eq("name", "user")
-      .single();
-
-    if (userRole) {
-      // Insert without select to avoid PGRST201 ambiguous FK error
-      const { error: roleInsertError } = await supabase
-        .from("user_roles")
-        .insert({ user_id: user.id, role_id: userRole.id });
-      
-      if (roleInsertError) {
-        console.warn('[AUTH] Non-critical error assigning default role:', roleInsertError);
-      }
-    }
-
-    console.log('[AUTH] User auto-created successfully:', newProfile);
+    // Note: Role assignment skipped to avoid RLS conflicts.
+    // Admin must assign roles via Admin UI or direct SQL.
+    console.log('[AUTH] User auto-created successfully:', newProfile?.id);
     
     return {
       ...user,
-      roles: ["user"], // Default role
+      roles: ["user"], // Assumed default for new users - actual roles will load on next auth check
       unitId: newProfile?.unit_id || null,
       fullName: newProfile?.full_name || null,
       email: newProfile?.email || user.email || "",
