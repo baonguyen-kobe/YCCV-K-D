@@ -1,39 +1,33 @@
 import Link from "next/link";
 import { Toaster } from "@/components/ui/sonner";
+import { getCurrentUserWithRoles } from "@/lib/auth";
+import { isAdmin } from "@/lib/permissions";
+import { HeaderNav } from "@/components/layout/header-nav";
 
 /**
  * Dashboard Layout - Main app layout with navigation
  * For authenticated users
  */
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Get user with roles to check admin status
+  const user = await getCurrentUserWithRoles();
+  const showAdmin = user ? isAdmin({ id: user.id, roles: user.roles, unitId: user.unitId }) : false;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header - TODO: Implement full header with user menu */}
+      {/* Header with navigation */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="font-semibold text-lg">
+          <Link href="/dashboard" className="font-semibold text-lg hover:text-blue-600">
             Hệ thống YCCV
-          </div>
+          </Link>
           
-          {/* TODO: Add navigation and user menu */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-              Dashboard
-            </Link>
-            <Link href="/requests" className="text-gray-600 hover:text-gray-900">
-              Yêu cầu
-            </Link>
-          </nav>
-
-          {/* Mobile menu button placeholder */}
-          <button className="md:hidden p-2">
-            <span className="sr-only">Menu</span>
-            ☰
-          </button>
+          {/* Navigation */}
+          <HeaderNav showAdmin={showAdmin} userEmail={user?.email || ""} userName={user?.fullName || ""} />
         </div>
       </header>
 
