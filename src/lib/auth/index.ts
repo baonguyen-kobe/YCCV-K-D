@@ -125,7 +125,7 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       // Treat as non-fatal and fall back to a safe default role.
       const errorCode = (createError as unknown as { code?: string })?.code;
       if (errorCode === "23505") {
-        console.warn('[AUTH] Auto-create hit duplicate key (profile likely exists). Check RLS SELECT policies for users/user_roles.', {
+        console.warn('[AUTH] Auto-create hit duplicate key (profile likely exists). Check RLS SELECT policies.', {
           userId: user.id,
           email: user.email,
         });
@@ -148,13 +148,13 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       };
     }
 
-    // Note: Role assignment skipped to avoid RLS conflicts.
-    // Admin must assign roles via Admin UI or direct SQL.
+    // Auto-create successful - return user profile with assumed default role
+    // Role assignment is done via RLS SELECT on user_roles table
     console.log('[AUTH] User auto-created successfully:', newProfile?.id);
     
     return {
       ...user,
-      roles: ["user"], // Assumed default for new users - actual roles will load on next auth check
+      roles: ["user"], // Assumed default - actual roles load from DB on next check
       unitId: newProfile?.unit_id || null,
       fullName: newProfile?.full_name || null,
       email: newProfile?.email || user.email || "",
