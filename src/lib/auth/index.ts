@@ -109,6 +109,16 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const roles = (profile.user_roles as any[])?.map((ur) => ur.role?.name).filter(Boolean) || [];
 
+  // Debug logging (remove after testing)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[AUTH] User roles loaded:', { 
+      email: profile.email, 
+      roles, 
+      unitId: profile.unit_id,
+      raw_user_roles: profile.user_roles 
+    });
+  }
+
   return {
     ...user,
     roles,

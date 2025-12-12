@@ -201,7 +201,19 @@ export function canEditRequest(user: UserForPermission, request: RequestForPermi
  * PRD Section 2.3: Admin, Manager, User can create; Staff cannot (unless also User)
  */
 export function canCreateRequest(user: UserForPermission): boolean {
-  return hasAnyRole(user, [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER]);
+  const canCreate = hasAnyRole(user, [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER]);
+  
+  // Debug logging (remove after testing)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[PERMISSIONS] canCreateRequest:', { 
+      userId: user.id, 
+      roles: user.roles, 
+      canCreate,
+      requiredRoles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.USER]
+    });
+  }
+  
+  return canCreate;
 }
 
 /**
