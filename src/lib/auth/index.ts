@@ -19,7 +19,7 @@ export type UserWithRoles = User & UserForPermission & {
  * Returns null if not authenticated
  */
 export async function getCurrentUser(): Promise<User | null> {
-  console.log("[AUTH] Checking current user (v2.1 - Force Update)");
+  console.log("[AUTH] Checking current user (v2.2 - Deployment Verification)");
   if (isMockMode()) {
     // Return mock user in demo mode
     const mockUser = getMockCurrentUser();
