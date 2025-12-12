@@ -217,7 +217,7 @@ export default async function RequestsPage({ searchParams }: PageProps) {
         ) : (
           <div className="divide-y">
             {requests.map((request) => (
-              <RequestRow key={request.id} request={request} />
+              <RequestRow key={request.id} request={request as any} />
             ))}
           </div>
         )}
