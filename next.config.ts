@@ -5,3 +5,5 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
+
+// Force rebuild at 2025-12-13 03:41:49
