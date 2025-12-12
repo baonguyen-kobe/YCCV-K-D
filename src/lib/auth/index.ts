@@ -120,6 +120,24 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       .single();
 
     if (createError) {
+      // If the row already exists (duplicate key), this usually means RLS blocked
+      // the SELECT above, so the app couldn't see the existing profile.
+      // Treat as non-fatal and fall back to a safe default role.
+      const errorCode = (createError as unknown as { code?: string })?.code;
+      if (errorCode === "23505") {
+        console.warn('[AUTH] Auto-create hit duplicate key (profile likely exists). Check RLS SELECT policies for users/user_roles.', {
+          userId: user.id,
+          email: user.email,
+        });
+        return {
+          ...user,
+          roles: ["user"],
+          unitId: null,
+          fullName: (user.user_metadata as any)?.full_name || user.email?.split("@")[0] || null,
+          email: user.email || "",
+        };
+      }
+
       console.error('[AUTH] Failed to auto-create user:', createError);
       return {
         ...user,
