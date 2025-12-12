@@ -18,6 +18,9 @@ export default async function ReportsPage() {
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    throw new Error("Failed to create Supabase client");
+  }
   const isUserAdmin = isAdmin(userForPermission);
 
   // Build query based on role

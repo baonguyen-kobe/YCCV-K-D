@@ -18,6 +18,9 @@ export default async function AdminCategoriesPage() {
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    throw new Error("Failed to create Supabase client");
+  }
 
   // Fetch categories with parent info
   const { data: categories } = await supabase

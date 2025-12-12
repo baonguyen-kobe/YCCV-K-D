@@ -19,6 +19,9 @@ export default async function CreateRequestPage() {
 
   // Fetch categories for dropdown
   const supabase = await createClient();
+  if (!supabase) {
+    throw new Error("Failed to create Supabase client");
+  }
   const { data: categories } = await supabase
     .from("categories")
     .select("id, name, code")

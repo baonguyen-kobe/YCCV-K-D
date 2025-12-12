@@ -9,6 +9,9 @@ import { ProfileForm } from "@/components/profile/profile-form";
 export default async function ProfilePage() {
   const user = await requireAuthWithRoles();
   const supabase = await createClient();
+  if (!supabase) {
+    throw new Error("Failed to create Supabase client");
+  }
 
   // Fetch full user profile
   const { data: profile } = await supabase

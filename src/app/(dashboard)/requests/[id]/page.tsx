@@ -32,6 +32,9 @@ export default async function RequestDetailPage({
   const user = await requireAuthWithRoles();
   const userForPermission = toUserForPermission(user);
   const supabase = await createClient();
+  if (!supabase) {
+    throw new Error("Failed to create Supabase client");
+  }
 
   // Fetch request with all related data
   const { data: request, error } = await supabase

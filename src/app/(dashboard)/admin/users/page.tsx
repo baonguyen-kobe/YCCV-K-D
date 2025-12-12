@@ -18,6 +18,9 @@ export default async function AdminUsersPage() {
   }
 
   const supabase = await createClient();
+  if (!supabase) {
+    throw new Error("Failed to create Supabase client");
+  }
 
   // Fetch users with their roles and units
   const { data: users } = await supabase
