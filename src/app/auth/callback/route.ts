@@ -54,6 +54,29 @@ export async function GET(request: Request) {
         if (profileError) {
           console.error("Error creating user profile:", profileError);
         }
+
+        // Ensure user has at least the default 'user' role
+        // This is a backup - the database trigger should handle this
+        const { data: userRoles } = await supabase
+          .from("user_roles")
+          .select("role_id")
+          .eq("user_id", whitelistedUser.id);
+
+        if (!userRoles || userRoles.length === 0) {
+          // Get the 'user' role id and assign it
+          const { data: userRole } = await supabase
+            .from("roles")
+            .select("id")
+            .eq("name", "user")
+            .single();
+
+          if (userRole) {
+            await supabase.from("user_roles").insert({
+              user_id: whitelistedUser.id,
+              role_id: userRole.id,
+            });
+          }
+        }
       }
 
       return NextResponse.redirect(`${origin}${next}`);

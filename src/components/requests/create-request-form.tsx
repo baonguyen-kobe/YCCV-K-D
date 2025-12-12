@@ -10,22 +10,23 @@ import { toast } from "sonner";
 import { Plus, Trash2, Save, Send, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { Priority } from "@/types/database.types";
+import { MAX_REASON_LENGTH } from "@/lib/constants";
 
-// Form validation schema
+// Form validation schema - synced with backend validation
 const requestItemSchema = z.object({
-  item_name: z.string().min(1, "Tên vật phẩm không được để trống"),
+  item_name: z.string().min(1, "Tên vật phẩm không được để trống").max(500, "Tên vật phẩm tối đa 500 ký tự"),
   category_id: z.string().optional(),
   unit_count: z.string().optional(),
   quantity: z.number().min(1, "Số lượng phải lớn hơn 0"),
   required_at: z.string().optional(),
   link_ref: z.string().url("Link không hợp lệ").optional().or(z.literal("")),
-  notes: z.string().optional(),
+  notes: z.string().max(500, "Ghi chú tối đa 500 ký tự").optional(),
 });
 
 const requestFormSchema = z.object({
-  reason: z.string().min(10, "Lý do yêu cầu phải có ít nhất 10 ký tự").max(1000, "Lý do yêu cầu không được vượt quá 1000 ký tự"),
+  reason: z.string().min(10, "Lý do yêu cầu phải có ít nhất 10 ký tự").max(MAX_REASON_LENGTH, `Lý do yêu cầu tối đa ${MAX_REASON_LENGTH} ký tự`),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
-  items: z.array(requestItemSchema).min(1, "Phải có ít nhất một mục yêu cầu"),
+  items: z.array(requestItemSchema).min(1, "Phải có ít nhất một mục yêu cầu").max(50, "Tối đa 50 hạng mục"),
 });
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
@@ -56,6 +57,7 @@ export function CreateRequestForm({ categories }: CreateRequestFormProps) {
     register,
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RequestFormData>({
     resolver: zodResolver(requestFormSchema),
@@ -65,6 +67,8 @@ export function CreateRequestForm({ categories }: CreateRequestFormProps) {
       items: [{ item_name: "", quantity: 1, unit_count: "", notes: "" }],
     },
   });
+
+  const reasonValue = watch("reason");
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -158,12 +162,20 @@ export function CreateRequestForm({ categories }: CreateRequestFormProps) {
           <textarea
             {...register("reason")}
             rows={4}
+            maxLength={MAX_REASON_LENGTH}
             className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             placeholder="Mô tả chi tiết lý do và mục đích của yêu cầu này..."
           />
-          {errors.reason && (
-            <p className="mt-1 text-sm text-red-500">{errors.reason.message}</p>
-          )}
+          <div className="flex justify-between mt-1">
+            {errors.reason ? (
+              <p className="text-sm text-red-500">{errors.reason.message}</p>
+            ) : (
+              <span />
+            )}
+            <span className={`text-xs ${(reasonValue?.length || 0) > MAX_REASON_LENGTH * 0.9 ? 'text-orange-500' : 'text-gray-400'}`}>
+              {reasonValue?.length || 0}/{MAX_REASON_LENGTH}
+            </span>
+          </div>
         </div>
 
         {/* Priority */}

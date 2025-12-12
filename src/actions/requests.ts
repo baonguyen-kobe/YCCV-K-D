@@ -11,11 +11,17 @@ import {
   canComment,
   canCreateInternalComment,
   canAssignRequest,
+  isAdmin,
   REQUEST_STATUS,
   STATE_TRANSITIONS,
 } from "@/lib/permissions";
 import { checkRateLimit, formatRateLimitError } from "@/lib/rate-limiting";
-import { RATE_LIMIT_REQUESTS_PER_MINUTE } from "@/lib/constants";
+import { 
+  RATE_LIMIT_REQUESTS_PER_MINUTE, 
+  MAX_FILE_SIZE_BYTES, 
+  ALLOWED_FILE_TYPES,
+  MAX_ATTACHMENTS_PER_REQUEST,
+} from "@/lib/constants";
 import {
   validateInput,
   createRequestSchema,
@@ -329,6 +335,15 @@ export async function updateRequest(
     return { success: false, error: "Bạn cần đăng nhập để thực hiện thao tác này" };
   }
 
+  // Rate limiting check
+  const rateLimitResult = await checkRateLimit(user.id, "update_request", RATE_LIMIT_REQUESTS_PER_MINUTE);
+  if (!rateLimitResult.allowed) {
+    return {
+      success: false,
+      error: formatRateLimitError(rateLimitResult.resetAt),
+    };
+  }
+
   const supabase = await createClient();
   const request = await getRequestForPermission(supabase, input.id);
 
@@ -572,6 +587,15 @@ export async function updateRequestStatus(
     return { success: false, error: "Bạn cần đăng nhập để thực hiện thao tác này" };
   }
 
+  // Rate limiting check
+  const rateLimitResult = await checkRateLimit(user.id, "update_status", RATE_LIMIT_REQUESTS_PER_MINUTE);
+  if (!rateLimitResult.allowed) {
+    return {
+      success: false,
+      error: formatRateLimitError(rateLimitResult.resetAt),
+    };
+  }
+
   // Validate input using Zod
   const validation = validateInput(changeStatusSchema, {
     request_id: requestId,
@@ -800,4 +824,221 @@ export async function getStaffList(): Promise<ActionResult<{ id: string; name: s
     .filter(Boolean) as { id: string; name: string; email: string }[];
 
   return { success: true, data: staff || [] };
+}
+
+// ============================================================
+// FILE ATTACHMENT ACTIONS
+// ============================================================
+
+interface AttachmentData {
+  id: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  file_url: string;
+}
+
+/**
+ * Upload attachment file to Supabase Storage
+ */
+export async function uploadAttachment(
+  formData: FormData
+): Promise<ActionResult<AttachmentData>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập để upload file" };
+  }
+
+  const file = formData.get("file") as File | null;
+  const requestId = formData.get("requestId") as string | null;
+
+  if (!file) {
+    return { success: false, error: "Không tìm thấy file" };
+  }
+
+  // Validate file size
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    return { success: false, error: `File quá lớn. Tối đa ${MAX_FILE_SIZE_BYTES / 1024 / 1024}MB` };
+  }
+
+  // Validate file type
+  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+    return { success: false, error: "Loại file không được hỗ trợ" };
+  }
+
+  const supabase = await createClient();
+
+  // Check attachment count if request specified
+  if (requestId) {
+    const { count } = await supabase
+      .from("attachments")
+      .select("*", { count: "exact", head: true })
+      .eq("request_id", requestId);
+
+    if (count && count >= MAX_ATTACHMENTS_PER_REQUEST) {
+      return { success: false, error: `Tối đa ${MAX_ATTACHMENTS_PER_REQUEST} file đính kèm` };
+    }
+  }
+
+  // Generate unique filename
+  const timestamp = Date.now();
+  const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const filePath = `${user.id}/${timestamp}-${safeFileName}`;
+
+  // Upload to Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from("attachments")
+    .upload(filePath, file);
+
+  if (uploadError) {
+    console.error("Upload error:", uploadError);
+    return { success: false, error: "Không thể upload file. Vui lòng thử lại." };
+  }
+
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from("attachments")
+    .getPublicUrl(filePath);
+
+  // Determine file type
+  let fileType: "image" | "document" | "file" = "file";
+  if (file.type.startsWith("image/")) {
+    fileType = "image";
+  } else if (file.type.includes("pdf") || file.type.includes("word") || file.type.includes("excel") || file.type.includes("sheet")) {
+    fileType = "document";
+  }
+
+  // Create attachment record
+  const { data: attachment, error: dbError } = await supabase
+    .from("attachments")
+    .insert({
+      request_id: requestId || null,
+      file_name: file.name,
+      file_type: fileType,
+      file_size: file.size,
+      file_url: filePath, // Store path, not full URL
+      uploaded_by: user.id,
+    })
+    .select("id, file_name, file_type, file_size, file_url")
+    .single();
+
+  if (dbError || !attachment) {
+    console.error("DB error:", dbError);
+    // Cleanup uploaded file
+    await supabase.storage.from("attachments").remove([filePath]);
+    return { success: false, error: "Không thể lưu thông tin file" };
+  }
+
+  return {
+    success: true,
+    data: {
+      id: attachment.id,
+      file_name: attachment.file_name,
+      file_type: attachment.file_type,
+      file_size: attachment.file_size,
+      file_url: urlData.publicUrl,
+    },
+  };
+}
+
+/**
+ * Delete attachment
+ */
+export async function deleteAttachment(
+  attachmentId: string
+): Promise<ActionResult> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const supabase = await createClient();
+
+  // Get attachment
+  const { data: attachment } = await supabase
+    .from("attachments")
+    .select("id, file_url, uploaded_by, request_id")
+    .eq("id", attachmentId)
+    .single();
+
+  if (!attachment) {
+    return { success: false, error: "Không tìm thấy file" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+
+  // Check permission: owner or admin
+  if (attachment.uploaded_by !== user.id && !isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền xoá file này" };
+  }
+
+  // Delete from storage
+  const { error: storageError } = await supabase.storage
+    .from("attachments")
+    .remove([attachment.file_url]);
+
+  if (storageError) {
+    console.error("Storage delete error:", storageError);
+  }
+
+  // Delete from database
+  const { error: dbError } = await supabase
+    .from("attachments")
+    .delete()
+    .eq("id", attachmentId);
+
+  if (dbError) {
+    console.error("DB delete error:", dbError);
+    return { success: false, error: "Không thể xoá file" };
+  }
+
+  if (attachment.request_id) {
+    revalidatePath(`/requests/${attachment.request_id}`);
+  }
+
+  return { success: true };
+}
+
+/**
+ * Get attachments for a request
+ */
+export async function getAttachments(
+  requestId: string
+): Promise<ActionResult<AttachmentData[]>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const supabase = await createClient();
+
+  const { data: attachments, error } = await supabase
+    .from("attachments")
+    .select("id, file_name, file_type, file_size, file_url")
+    .eq("request_id", requestId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching attachments:", error);
+    return { success: false, error: "Không thể tải danh sách file" };
+  }
+
+  // Generate signed URLs for each attachment
+  const attachmentsWithUrls = await Promise.all(
+    (attachments || []).map(async (att) => {
+      const { data } = await supabase.storage
+        .from("attachments")
+        .createSignedUrl(att.file_url, 3600); // 1 hour expiry
+
+      return {
+        id: att.id,
+        file_name: att.file_name,
+        file_type: att.file_type,
+        file_size: att.file_size,
+        file_url: data?.signedUrl || "",
+      };
+    })
+  );
+
+  return { success: true, data: attachmentsWithUrls };
 }

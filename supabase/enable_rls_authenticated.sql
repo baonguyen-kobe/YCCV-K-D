@@ -174,3 +174,48 @@ DROP POLICY IF EXISTS "Allow authenticated users to insert request_logs" ON requ
 CREATE POLICY "Allow authenticated users to insert request_logs" ON request_logs
   FOR INSERT
   WITH CHECK (auth.role() = 'authenticated');
+
+-- ============================================================
+-- CREATE POLICIES FOR auth_logs
+-- ============================================================
+ALTER TABLE auth_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow admin to read auth_logs" ON auth_logs;
+CREATE POLICY "Allow admin to read auth_logs" ON auth_logs
+  FOR SELECT
+  USING (user_has_role(auth.uid(), 'admin'));
+
+DROP POLICY IF EXISTS "Allow system to insert auth_logs" ON auth_logs;
+CREATE POLICY "Allow system to insert auth_logs" ON auth_logs
+  FOR INSERT
+  WITH CHECK (true);
+
+-- ============================================================
+-- CREATE POLICIES FOR rate_limits
+-- ============================================================
+ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow authenticated users to read rate_limits" ON rate_limits;
+CREATE POLICY "Allow authenticated users to read rate_limits" ON rate_limits
+  FOR SELECT
+  USING (user_id = auth.uid() OR user_has_role(auth.uid(), 'admin'));
+
+DROP POLICY IF EXISTS "Allow authenticated users to insert rate_limits" ON rate_limits;
+CREATE POLICY "Allow authenticated users to insert rate_limits" ON rate_limits
+  FOR INSERT
+  WITH CHECK (user_id = auth.uid());
+
+-- ============================================================
+-- CREATE POLICIES FOR cron_logs
+-- ============================================================
+ALTER TABLE cron_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow admin to read cron_logs" ON cron_logs;
+CREATE POLICY "Allow admin to read cron_logs" ON cron_logs
+  FOR SELECT
+  USING (user_has_role(auth.uid(), 'admin'));
+
+DROP POLICY IF EXISTS "Allow system to insert cron_logs" ON cron_logs;
+CREATE POLICY "Allow system to insert cron_logs" ON cron_logs
+  FOR INSERT
+  WITH CHECK (true);

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { addComment } from "@/actions/requests";
 import { toast } from "sonner";
 import { Send, Lock } from "lucide-react";
+import { MAX_COMMENT_LENGTH } from "@/lib/constants";
 
 interface Comment {
   id: string;
@@ -93,7 +94,7 @@ export function RequestComments({
             placeholder="Viết bình luận..."
             className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             rows={3}
-            maxLength={1000}
+            maxLength={MAX_COMMENT_LENGTH}
           />
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -109,8 +110,8 @@ export function RequestComments({
                   Nội bộ
                 </label>
               )}
-              <span className="text-xs text-gray-400">
-                {content.length}/1000
+              <span className={`text-xs ${content.length > MAX_COMMENT_LENGTH * 0.9 ? 'text-orange-500' : 'text-gray-400'}`}>
+                {content.length}/{MAX_COMMENT_LENGTH}
               </span>
             </div>
             <button

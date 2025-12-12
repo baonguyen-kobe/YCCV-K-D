@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { submitRequest, updateRequestStatus, cancelRequest, assignRequest, getStaffList } from "@/actions/requests";
 import { toast } from "sonner";
 import type { RequestStatus } from "@/types/database.types";
+import { MAX_COMPLETION_NOTE_LENGTH, MAX_CANCEL_REASON_LENGTH } from "@/lib/constants";
 
 interface RequestActionsProps {
   requestId: string;
@@ -33,7 +34,8 @@ export function RequestActions({
   const [selectedStaff, setSelectedStaff] = useState("");
 
   const handleClick = async () => {
-    if (requireConfirm || actionType === "cancel" || actionType === "assign" || newStatus === "DONE") {
+    // Show dialog for: cancel, assign, DONE, NEED_INFO transitions
+    if (requireConfirm || actionType === "cancel" || actionType === "assign" || newStatus === "DONE" || newStatus === "NEED_INFO") {
       if (actionType === "assign") {
         // Load staff list
         const result = await getStaffList();
@@ -108,6 +110,7 @@ export function RequestActions({
               {actionType === "cancel" ? "Xác nhận huỷ yêu cầu" : 
                actionType === "assign" ? "Phân công xử lý" :
                newStatus === "DONE" ? "Hoàn thành yêu cầu" :
+               newStatus === "NEED_INFO" ? "Yêu cầu bổ sung thông tin" :
                "Xác nhận thao tác"}
             </h3>
 
@@ -129,18 +132,28 @@ export function RequestActions({
                   ))}
                 </select>
               </div>
-            ) : (actionType === "cancel" || newStatus === "DONE") && (
+            ) : (actionType === "cancel" || newStatus === "DONE" || newStatus === "NEED_INFO") && (
               <div className="mb-4">
                 <label className="block text-sm text-gray-600 mb-2">
-                  {actionType === "cancel" ? "Lý do huỷ (tuỳ chọn)" : "Ghi chú hoàn thành (tuỳ chọn)"}
+                  {actionType === "cancel" ? "Lý do huỷ (tuỳ chọn)" : 
+                   newStatus === "NEED_INFO" ? "Mô tả thông tin cần bổ sung *" :
+                   "Ghi chú hoàn thành (tuỳ chọn)"}
                 </label>
                 <textarea
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
+                  maxLength={actionType === "cancel" ? MAX_CANCEL_REASON_LENGTH : MAX_COMPLETION_NOTE_LENGTH}
                   className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   rows={3}
-                  placeholder={actionType === "cancel" ? "Nhập lý do huỷ..." : "Nhập ghi chú..."}
+                  placeholder={actionType === "cancel" ? "Nhập lý do huỷ..." : 
+                              newStatus === "NEED_INFO" ? "Mô tả chi tiết thông tin cần bổ sung từ người yêu cầu..." :
+                              "Nhập ghi chú..."}
                 />
+                <div className="flex justify-end mt-1">
+                  <span className={`text-xs ${note.length > (actionType === "cancel" ? MAX_CANCEL_REASON_LENGTH : MAX_COMPLETION_NOTE_LENGTH) * 0.9 ? 'text-orange-500' : 'text-gray-400'}`}>
+                    {note.length}/{actionType === "cancel" ? MAX_CANCEL_REASON_LENGTH : MAX_COMPLETION_NOTE_LENGTH}
+                  </span>
+                </div>
               </div>
             )}
 
@@ -154,7 +167,7 @@ export function RequestActions({
               </button>
               <button
                 onClick={executeAction}
-                disabled={isLoading || (actionType === "assign" && !selectedStaff)}
+                disabled={isLoading || (actionType === "assign" && !selectedStaff) || (newStatus === "NEED_INFO" && !note.trim())}
                 className={`px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${
                   actionType === "cancel" 
                     ? "bg-red-600 text-white hover:bg-red-700" 
