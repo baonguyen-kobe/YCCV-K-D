@@ -256,17 +256,36 @@
 ### 12. ✅ User Management - DONE
 **Status:** ✅ Đã hoàn thành
 
-- ✅ List users với roles và units
-- ✅ Create user (email/password via Supabase Auth)
-- ✅ Edit user (full_name, phone, unit_id)
-- ✅ Assign/Remove roles (multi-select checkboxes)
-- ✅ Toggle is_active status
-- ✅ Search/filter users
 
 **Files đã tạo:**
-- `src/components/admin/user-management.tsx` ✅
-- `src/app/(dashboard)/admin/users/page.tsx` ✅
-- `src/actions/admin.ts` ✅
+
+### 13. ✅ Category Management - DONE
+**Status:** ✅ Đã hoàn thành
+
+- ✅ CRUD categories
+- ✅ Hierarchical categories (parent_id) with tree view
+- ✅ Sort order
+- ✅ is_active toggle
+- ✅ Unit assignment
+
+**Files đã tạo:**
+- `src/components/admin/category-management.tsx` ✅
+- `src/app/(dashboard)/admin/categories/page.tsx` ✅
+- `src/actions/admin.ts` - upsertCategory, deleteCategory ✅
+
+### 14. ✅ Admin Page & Sign Out - DONE
+**Status:** ✅ Đã hoàn thành
+
+- ✅ Admin page với tabs (User Management, Category Management)
+- ✅ Menu "Quản trị" chỉ hiển thị cho admin
+- ✅ Sign out button trong user menu
+- ✅ Responsive navigation
+
+**Files đã tạo/sửa:**
+- `src/app/(dashboard)/admin/page.tsx` ✅
+- `src/app/api/admin/data/route.ts` ✅
+- `src/components/layout/header-nav.tsx` ✅
+- `src/app/(dashboard)/layout.tsx` ✅
 
 ---
 
@@ -288,105 +307,9 @@
 
 ## 📦 PHASE 5 - Nice to have (Đang chờ)
 
-### 14. 🖨️ Print to PDF (Google Docs Template)
+### 15. 🖨️ Print to PDF (Google Docs Template)
 **Status:** ❌ Chưa có
-
-**Cần làm:**
-- [ ] Setup Google Service Account
-- [ ] Create Google Docs template
-- [ ] Implement API: Docs → PDF stream
-- [ ] Button "In phiếu" trong detail view
-
-**Files cần tạo:**
-- `src/lib/google-docs.ts` (NEW)
-- `src/app/api/print/[id]/route.ts` (NEW)
-
-**⚠️ Phức tạp, có thể làm sau khi các features khác xong**
-
----
-
-### 15. 📧 Email Notifications (Resend)
-**Status:** ❌ Chưa có
-
-**PRD yêu cầu email triggers:**
-- [ ] NEW → Manager
-- [ ] ASSIGNED → Staff
-- [ ] NEED_INFO → Creator
-- [ ] DONE → Creator + Manager
-- [ ] CANCELLED → Creator
-- [ ] Comment trả lời khi NEED_INFO → Staff
-
-**Files cần tạo:**
-- `src/lib/email.ts` (NEW)
-- `src/lib/email-templates/` (NEW folder với templates)
-- Setup Resend API key
-
-**Phụ thuộc:** Status transition với notes phải xong trước
-
----
-
-### 16. ⏰ Cron Job - Nhắc việc
-**Status:** ❌ Chưa có
-
-**PRD yêu cầu:**
-- [ ] Chạy 08:00 AM hàng ngày
-- [ ] Quét request_items có required_at = ngày mai
-- [ ] Gửi email nhắc Staff + Manager
-
-**Files cần tạo:**
-- `src/app/api/cron/reminders/route.ts` - Đã có file nhưng chưa implement
-- Setup Vercel Cron config
-
-**Phụ thuộc:** Email system phải xong trước
-
----
-
-### 17. 👨‍💼 Admin - User Management
-**Status:** ⚠️ Route có, content chưa đầy đủ
-
-**Cần làm:**
-- [ ] List users với roles
-- [ ] Create user (email/password)
-- [ ] Edit user (is_active, unit_id)
-- [ ] Assign/Remove roles
-- [ ] Reset password (manual)
-
-**Files cần sửa:**
-- `src/components/admin/user-management.tsx` - Full CRUD
-- `src/app/(dashboard)/admin/users/page.tsx`
-
----
-
-### 18. 📂 Admin - Category Management
-**Status:** ⚠️ Route có, content cơ bản
-
-**Cần làm:**
-- [ ] CRUD categories
-- [ ] Hierarchical categories (parent_id)
-- [ ] Sort order
-- [ ] is_active toggle
-
-**Files cần sửa:**
-- `src/components/admin/category-management.tsx` - Expand features
-- `src/app/(dashboard)/admin/categories/page.tsx`
-
----
-
-### 19. 📊 Reports
-**Status:** ❌ Chưa có
-
-**PRD yêu cầu:**
-- [ ] Báo cáo theo đơn vị
-- [ ] Báo cáo theo thời gian
-- [ ] Xuất Excel
-- [ ] Charts (optional)
-
-**Files cần tạo:**
-- `src/app/(dashboard)/reports/page.tsx` - Implement
-- `src/lib/reports.ts` (NEW)
-- `src/lib/excel-export.ts` (NEW)
-
----
+...existing code...
 
 ## 🔧 TECHNICAL DEBT & IMPROVEMENTS
 

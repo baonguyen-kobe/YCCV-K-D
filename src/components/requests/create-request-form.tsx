@@ -291,7 +291,9 @@ export function CreateRequestForm({ categories }: CreateRequestFormProps) {
                       <input
                         type="number"
                         min="1"
-                        {...register(`items.${index}.quantity`)}
+                        {...register(`items.${index}.quantity`, { 
+                          valueAsNumber: true 
+                        })}
                         className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>

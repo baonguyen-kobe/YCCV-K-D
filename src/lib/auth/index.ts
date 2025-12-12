@@ -156,10 +156,14 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
       .single();
 
     if (userRole) {
-      await supabase
+      // Insert without select to avoid PGRST201 ambiguous FK error
+      const { error: roleInsertError } = await supabase
         .from("user_roles")
-        .insert({ user_id: user.id, role_id: userRole.id })
-        .select();
+        .insert({ user_id: user.id, role_id: userRole.id });
+      
+      if (roleInsertError) {
+        console.warn('[AUTH] Non-critical error assigning default role:', roleInsertError);
+      }
     }
 
     console.log('[AUTH] User auto-created successfully:', newProfile);
