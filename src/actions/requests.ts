@@ -66,7 +66,10 @@ export interface UpdateRequestInput extends CreateRequestInput {
 // HELPER FUNCTIONS
 // ============================================================
 
-async function getRequestForPermission(supabase: Awaited<ReturnType<typeof createClient>>, requestId: string) {
+async function getRequestForPermission(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  requestId: string
+) {
   const { data: request, error } = await supabase
     .from("requests")
     .select("id, status, created_by, assignee_id, unit_id, version")
@@ -345,6 +348,7 @@ export async function updateRequest(
   }
 
   const supabase = await createClient();
+  if (!supabase) return { success: false, error: "Lỗi kết nối database" };
   const request = await getRequestForPermission(supabase, input.id);
 
   if (!request) {
