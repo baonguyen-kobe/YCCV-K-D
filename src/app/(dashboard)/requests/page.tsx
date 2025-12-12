@@ -163,7 +163,7 @@ export default async function RequestsPage({ searchParams }: PageProps) {
       .range(from, to);
 
     requests = result.data;
-    count = result.count;
+    count = result.count || 0;
     error = result.error;
 
     if (error) {
