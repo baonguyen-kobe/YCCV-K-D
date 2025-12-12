@@ -1187,11 +1187,11 @@ export async function getDashboardStats(): Promise<ActionResult<DashboardStats>>
 
   try {
     // Build base filter based on role
-    const applyRoleFilter = (query: ReturnType<typeof supabase.from>) => {
+    const applyRoleFilter = <T>(query: T): T => {
       if (isAdminUser) return query;
-      if (isManagerUser && user.unitId) return query.eq("unit_id", user.unitId);
-      if (isStaffUser) return query.eq("assignee_id", user.id);
-      return query.eq("created_by", user.id);
+      if (isManagerUser && user.unitId) return (query as any).eq("unit_id", user.unitId);
+      if (isStaffUser) return (query as any).eq("assignee_id", user.id);
+      return (query as any).eq("created_by", user.id);
     };
 
     // Parallel queries for all stats
