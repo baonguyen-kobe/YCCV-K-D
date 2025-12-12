@@ -99,18 +99,58 @@ export async function getCurrentUserWithRoles(): Promise<UserWithRoles | null> {
   });
 
   if (!profile) {
-    // User exists in auth but not in users table
-    console.error('[AUTH] User not found in users table:', {
+    // User exists in auth but not in users table - auto-create
+    console.warn('[AUTH] User not found in users table, attempting auto-create:', {
       userId: user.id,
       email: user.email,
       error: profileError
     });
+
+    // Try to create user profile automatically
+    const { data: newProfile, error: createError } = await supabase
+      .from("users")
+      .insert({
+        id: user.id,
+        email: user.email || "",
+        full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "User",
+        is_active: true,
+      })
+      .select("id, email, full_name, unit_id")
+      .single();
+
+    if (createError) {
+      console.error('[AUTH] Failed to auto-create user:', createError);
+      return {
+        ...user,
+        roles: [],
+        unitId: null,
+        fullName: null,
+        email: user.email || "",
+      };
+    }
+
+    // Assign default 'user' role
+    const { data: userRole } = await supabase
+      .from("roles")
+      .select("id")
+      .eq("name", "user")
+      .single();
+
+    if (userRole) {
+      await supabase
+        .from("user_roles")
+        .insert({ user_id: user.id, role_id: userRole.id })
+        .select();
+    }
+
+    console.log('[AUTH] User auto-created successfully:', newProfile);
+    
     return {
       ...user,
-      roles: [],
-      unitId: null,
-      fullName: null,
-      email: user.email || "",
+      roles: ["user"], // Default role
+      unitId: newProfile?.unit_id || null,
+      fullName: newProfile?.full_name || null,
+      email: newProfile?.email || user.email || "",
     };
   }
 
