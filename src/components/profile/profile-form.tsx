@@ -4,6 +4,7 @@ import { useState } from "react";
 import { updateProfile } from "@/actions/admin";
 import { toast } from "sonner";
 import { User, Mail, Phone, Building, Shield, Calendar, Save } from "lucide-react";
+import { AvatarUpload } from "./avatar-upload";
 
 interface Role {
   id: string;
@@ -29,6 +30,7 @@ interface ProfileFormProps {
 export function ProfileForm({ profile }: ProfileFormProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [formData, setFormData] = useState({
     full_name: profile.full_name || "",
     phone: profile.phone || "",
@@ -83,18 +85,12 @@ export function ProfileForm({ profile }: ProfileFormProps) {
       {/* Avatar Section */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-8">
         <div className="flex items-center gap-4">
-          <div className="h-20 w-20 rounded-full bg-white/20 flex items-center justify-center">
-            {profile.avatar_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={profile.avatar_url}
-                alt={profile.full_name || "Avatar"}
-                className="h-20 w-20 rounded-full object-cover"
-              />
-            ) : (
-              <User className="h-10 w-10 text-white" />
-            )}
-          </div>
+          <AvatarUpload
+            currentUrl={avatarUrl}
+            userName={profile.full_name}
+            userId={profile.id}
+            onUploadComplete={(newUrl) => setAvatarUrl(newUrl)}
+          />
           <div className="text-white">
             <h2 className="text-xl font-semibold">
               {profile.full_name || "(Chưa có tên)"}

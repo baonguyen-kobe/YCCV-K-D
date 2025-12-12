@@ -4,18 +4,24 @@ import { requireAuthWithRoles } from "@/lib/auth";
 import { isAdmin, isManager, isStaff } from "@/lib/permissions";
 import { isMockMode } from "@/lib/demo-mode";
 import { getMockRequestsWithRelations } from "@/data/mock-data";
-import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus } from "lucide-react";
 import { RequestFilters } from "@/components/requests/request-filters";
+import { SearchBox } from "@/components/requests/search-box";
+import { Pagination } from "@/components/ui/pagination";
 import type { RequestStatus, Priority } from "@/types/database.types";
 
-const ITEMS_PER_PAGE = 10;
+const DEFAULT_PAGE_SIZE = 10;
+const VALID_PAGE_SIZES = [10, 20, 25, 50];
 
 interface PageProps {
   searchParams: Promise<{
     page?: string;
+    pageSize?: string;
     status?: RequestStatus;
     priority?: Priority;
     search?: string;
+    dateFrom?: string;
+    dateTo?: string;
   }>;
 }
 
@@ -29,9 +35,13 @@ export default async function RequestsPage({ searchParams }: PageProps) {
 
   // Parse query params
   const currentPage = Math.max(1, parseInt(params.page || "1", 10));
+  const parsedPageSize = parseInt(params.pageSize || "", 10);
+  const pageSize = VALID_PAGE_SIZES.includes(parsedPageSize) ? parsedPageSize : DEFAULT_PAGE_SIZE;
   const statusFilter = params.status || "all";
   const priorityFilter = params.priority || "all";
   const searchQuery = params.search || "";
+  const dateFrom = params.dateFrom || "";
+  const dateTo = params.dateTo || "";
 
   let requests;
   let count = 0;
@@ -74,8 +84,8 @@ export default async function RequestsPage({ searchParams }: PageProps) {
     }
 
     // Pagination
-    const from = (currentPage - 1) * ITEMS_PER_PAGE;
-    const to = from + ITEMS_PER_PAGE;
+    const from = (currentPage - 1) * pageSize;
+    const to = from + pageSize;
 
     count = mockRequests.length;
     requests = mockRequests.slice(from, to);
@@ -134,10 +144,18 @@ export default async function RequestsPage({ searchParams }: PageProps) {
     if (searchQuery) {
       query = query.or(`reason.ilike.%${searchQuery}%,request_number.eq.${parseInt(searchQuery) || 0}`);
     }
+    
+    // Date range filters
+    if (dateFrom) {
+      query = query.gte("created_at", `${dateFrom}T00:00:00`);
+    }
+    if (dateTo) {
+      query = query.lte("created_at", `${dateTo}T23:59:59`);
+    }
 
     // Pagination
-    const from = (currentPage - 1) * ITEMS_PER_PAGE;
-    const to = from + ITEMS_PER_PAGE - 1;
+    const from = (currentPage - 1) * pageSize;
+    const to = from + pageSize - 1;
 
     // Execute query
     const result = await query
@@ -153,17 +171,7 @@ export default async function RequestsPage({ searchParams }: PageProps) {
     }
   }
 
-  const totalPages = Math.ceil((count || 0) / ITEMS_PER_PAGE);
-
-  // Build pagination URL helper
-  const buildPageUrl = (page: number) => {
-    const params = new URLSearchParams();
-    if (statusFilter !== "all") params.set("status", statusFilter);
-    if (priorityFilter !== "all") params.set("priority", priorityFilter as string);
-    if (searchQuery) params.set("search", searchQuery);
-    params.set("page", String(page));
-    return `/requests?${params.toString()}`;
-  };
+  const totalPages = Math.ceil((count || 0) / pageSize);
 
   return (
     <div className="space-y-6">
@@ -183,32 +191,19 @@ export default async function RequestsPage({ searchParams }: PageProps) {
       <div className="bg-white p-4 rounded-lg border">
         <div className="flex flex-wrap items-center gap-4">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <form action="/requests" method="GET">
-              <input
-                type="text"
-                name="search"
-                placeholder="Tìm theo mã hoặc nội dung..."
-                defaultValue={searchQuery}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {statusFilter !== "all" && <input type="hidden" name="status" value={statusFilter} />}
-              {priorityFilter !== "all" && <input type="hidden" name="priority" value={priorityFilter} />}
-            </form>
+          <div className="flex-1 min-w-[200px]">
+            <SearchBox initialQuery={searchQuery} />
           </div>
 
           {/* Filter Dropdowns (Client Component) */}
           <RequestFilters 
             currentStatus={statusFilter} 
-            currentPriority={priorityFilter as string} 
+            currentPriority={priorityFilter as string}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            showAdvanced={true}
           />
         </div>
-      </div>
-
-      {/* Results count */}
-      <div className="text-sm text-gray-500">
-        Hiển thị {requests?.length || 0} / {count || 0} yêu cầu
       </div>
 
       {/* Request List */}
@@ -229,62 +224,13 @@ export default async function RequestsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Link
-            href={buildPageUrl(Math.max(1, currentPage - 1))}
-            className={`p-2 rounded-lg border ${
-              currentPage === 1
-                ? "text-gray-300 pointer-events-none"
-                : "hover:bg-gray-50"
-            }`}
-            aria-disabled={currentPage === 1}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Link>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum: number;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (currentPage <= 3) {
-                pageNum = i + 1;
-              } else if (currentPage >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = currentPage - 2 + i;
-              }
-              
-              return (
-                <Link
-                  key={pageNum}
-                  href={buildPageUrl(pageNum)}
-                  className={`px-3 py-1 rounded-lg ${
-                    pageNum === currentPage
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-gray-50 border"
-                  }`}
-                >
-                  {pageNum}
-                </Link>
-              );
-            })}
-          </div>
-
-          <Link
-            href={buildPageUrl(Math.min(totalPages, currentPage + 1))}
-            className={`p-2 rounded-lg border ${
-              currentPage === totalPages
-                ? "text-gray-300 pointer-events-none"
-                : "hover:bg-gray-50"
-            }`}
-            aria-disabled={currentPage === totalPages}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Link>
-        </div>
-      )}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={count || 0}
+        pageSize={pageSize}
+        baseUrl="/requests"
+      />
     </div>
   );
 }

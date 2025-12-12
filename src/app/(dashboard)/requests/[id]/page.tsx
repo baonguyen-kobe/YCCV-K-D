@@ -17,6 +17,7 @@ import { ArrowLeft, Edit, Send, UserPlus, Clock, CheckCircle, XCircle, AlertTria
 import type { RequestStatus } from "@/types/database.types";
 import { RequestActions } from "@/components/requests/request-actions";
 import { RequestComments } from "@/components/requests/request-comments";
+import { ActivityLog } from "@/components/requests/activity-log";
 
 /**
  * Request Detail Page
@@ -305,32 +306,11 @@ export default async function RequestDetailPage({
 
           {/* Activity Log */}
           <div className="bg-white p-6 rounded-lg border">
-            <h2 className="font-semibold mb-4">Lịch sử hoạt động</h2>
-            {logs.length === 0 ? (
-              <p className="text-gray-500 text-sm">Chưa có hoạt động nào</p>
-            ) : (
-              <div className="space-y-3">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {logs.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 10).map((log: any) => {
-                  const logUser = getFirst(log.user);
-                  return (
-                    <div key={log.id} className="text-sm">
-                      <div className="flex items-start gap-2">
-                        <Clock className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-gray-700">
-                            {getActionLabel(log.action, log.old_status, log.new_status)}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {logUser?.full_name || logUser?.email || "System"} • {formatDateTime(log.created_at)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <h2 className="font-semibold mb-4 flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Lịch sử hoạt động
+            </h2>
+            <ActivityLog logs={logs} />
           </div>
         </div>
       </div>

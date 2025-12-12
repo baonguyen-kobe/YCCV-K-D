@@ -4,7 +4,8 @@ import { isAdmin, isManager, isStaff } from "@/lib/permissions";
 import { isMockMode } from "@/lib/demo-mode";
 import { getMockRequestsWithRelations, getMockStats } from "@/data/mock-data";
 import Link from "next/link";
-import { FileText, Clock, AlertTriangle, CheckCircle, Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight } from "lucide-react";
+import { DashboardWidgets } from "@/components/dashboard/dashboard-widgets";
 
 /**
  * Dashboard Page
@@ -33,47 +34,31 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+      {/* Dashboard Widgets */}
+      <DashboardWidgets 
+        stats={{
+          newCount: stats.newCount,
+          assignedCount: stats.pendingAssignment || 0,
+          inProgressCount: stats.inProgressCount,
+          needInfoCount: stats.needInfoCount,
+          doneThisMonth: stats.doneThisMonth,
+          overdueCount: stats.overdueCount,
+          myRequestsCount: stats.myRequestsCount || 0,
+          myTasksCount: stats.myTasksCount || 0,
+        }}
+        userRoles={user.roles}
+        userName={user.fullName || undefined}
+      />
+
+      {/* Create Request Button */}
+      <div className="flex justify-end">
         <Link
           href="/requests/create"
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Tạo yêu cầu
+          Tạo yêu cầu mới
         </Link>
-      </div>
-
-      {/* Stats Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Phiếu mới"
-          value={stats.newCount}
-          icon={<FileText className="h-5 w-5" />}
-          color="blue"
-          href="/requests?status=NEW"
-        />
-        <StatCard
-          title="Đang xử lý"
-          value={stats.inProgressCount}
-          icon={<Clock className="h-5 w-5" />}
-          color="purple"
-          href="/requests?status=IN_PROGRESS"
-        />
-        <StatCard
-          title="Quá hạn"
-          value={stats.overdueCount}
-          icon={<AlertTriangle className="h-5 w-5" />}
-          color="red"
-          href="/requests?overdue=true"
-        />
-        <StatCard
-          title="Hoàn thành tháng này"
-          value={stats.doneThisMonth}
-          icon={<CheckCircle className="h-5 w-5" />}
-          color="green"
-          href="/requests?status=DONE"
-        />
       </div>
 
       {/* Recent Requests */}
@@ -118,31 +103,6 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
-
-      {/* Quick Actions for different roles */}
-      {(isAdmin(user) || isManager(user)) && (
-        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-          <h3 className="font-semibold text-blue-800 mb-2">Hành động nhanh</h3>
-          <div className="flex flex-wrap gap-2">
-            {stats.pendingAssignment > 0 && (
-              <Link
-                href="/requests?status=NEW"
-                className="bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm hover:bg-blue-200 transition-colors"
-              >
-                {stats.pendingAssignment} phiếu chờ phân công
-              </Link>
-            )}
-            {stats.needInfoCount > 0 && (
-              <Link
-                href="/requests?status=NEED_INFO"
-                className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded text-sm hover:bg-yellow-200 transition-colors"
-              >
-                {stats.needInfoCount} phiếu cần bổ sung thông tin
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -150,49 +110,6 @@ export default async function DashboardPage() {
 // ============================================================
 // Helper Components
 // ============================================================
-
-function StatCard({
-  title,
-  value,
-  icon,
-  color,
-  href,
-}: {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  color: "blue" | "purple" | "red" | "green";
-  href: string;
-}) {
-  const colorClasses = {
-    blue: "text-blue-600 bg-blue-50",
-    purple: "text-purple-600 bg-purple-50",
-    red: "text-red-600 bg-red-50",
-    green: "text-green-600 bg-green-50",
-  };
-
-  const valueColorClasses = {
-    blue: "text-blue-600",
-    purple: "text-purple-600",
-    red: "text-red-600",
-    green: "text-green-600",
-  };
-
-  return (
-    <Link
-      href={href}
-      className="bg-white p-6 rounded-lg border hover:shadow-md transition-shadow"
-    >
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-500">{title}</div>
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>{icon}</div>
-      </div>
-      <div className={`text-3xl font-bold mt-2 ${valueColorClasses[color]}`}>
-        {value}
-      </div>
-    </Link>
-  );
-}
 
 function StatusBadge({ status }: { status: string }) {
   const statusConfig: Record<string, { label: string; className: string }> = {

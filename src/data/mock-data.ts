@@ -582,12 +582,31 @@ export function getMockUserRoles(userId: string): string[] {
 // STATS HELPERS
 // ============================================================
 
-export function getMockStats() {
-  const total = mockRequests.length;
-  const pending = mockRequests.filter((r) => r.status === "NEW").length;
-  const inProgress = mockRequests.filter((r) => ["ASSIGNED", "IN_PROGRESS", "NEED_INFO"].includes(r.status)).length;
-  const completed = mockRequests.filter((r) => r.status === "DONE").length;
-  const cancelled = mockRequests.filter((r) => r.status === "CANCELLED").length;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getMockStats(user?: any) {
+  const newCount = mockRequests.filter((r) => r.status === "NEW").length;
+  const inProgressCount = mockRequests.filter((r) => r.status === "IN_PROGRESS").length;
+  const needInfoCount = mockRequests.filter((r) => r.status === "NEED_INFO").length;
+  const doneThisMonth = mockRequests.filter((r) => r.status === "DONE").length;
+  const overdueCount = 2; // Mock value
+  const pendingAssignment = mockRequests.filter((r) => r.status === "NEW").length;
+  
+  // My requests (user-specific)
+  const myRequestsCount = user 
+    ? mockRequests.filter((r) => r.created_by === user.id && !["DONE", "CANCELLED"].includes(r.status)).length
+    : 0;
+  const myTasksCount = user 
+    ? mockRequests.filter((r) => r.assignee_id === user.id && ["ASSIGNED", "IN_PROGRESS", "NEED_INFO"].includes(r.status)).length
+    : 0;
 
-  return { total, pending, inProgress, completed, cancelled };
+  return { 
+    newCount, 
+    inProgressCount, 
+    needInfoCount,
+    doneThisMonth, 
+    overdueCount,
+    pendingAssignment,
+    myRequestsCount,
+    myTasksCount,
+  };
 }

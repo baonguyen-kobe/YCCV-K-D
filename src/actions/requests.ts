@@ -1042,3 +1042,210 @@ export async function getAttachments(
 
   return { success: true, data: attachmentsWithUrls };
 }
+
+// ============================================================
+// SEARCH REQUESTS (Phase 3)
+// ============================================================
+
+export interface SearchRequestsInput {
+  query: string;
+  status?: RequestStatus | "all";
+  priority?: Priority | "all";
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SearchRequestResult {
+  id: string;
+  request_number: number;
+  reason: string;
+  priority: Priority;
+  status: RequestStatus;
+  created_at: string;
+  creator_name: string | null;
+  creator_email: string | null;
+  assignee_name: string | null;
+  matched_items: string[] | null;
+}
+
+/**
+ * Search requests with full-text search across reason and items
+ * Uses search_requests RPC function for better performance
+ */
+export async function searchRequests(
+  input: SearchRequestsInput
+): Promise<ActionResult<{ requests: SearchRequestResult[]; totalCount: number }>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const supabase = await createClient();
+  const userForPermission = toUserForPermission(user);
+  
+  const isAdminUser = isAdmin(userForPermission);
+  const isManagerUser = userForPermission.roles.includes("manager");
+  const isStaffUser = userForPermission.roles.includes("staff");
+
+  const status = input.status && input.status !== "all" ? input.status : null;
+  const priority = input.priority && input.priority !== "all" ? input.priority : null;
+  const page = input.page || 1;
+  const pageSize = input.pageSize || 20;
+  const offset = (page - 1) * pageSize;
+
+  try {
+    const { data, error } = await supabase.rpc("search_requests", {
+      p_search_query: input.query || "",
+      p_user_id: user.id,
+      p_is_admin: isAdminUser,
+      p_is_manager: isManagerUser,
+      p_is_staff: isStaffUser,
+      p_user_unit_id: user.unitId || null,
+      p_status: status,
+      p_priority: priority,
+      p_limit: pageSize,
+      p_offset: offset,
+    });
+
+    if (error) {
+      console.error("Search RPC error:", error);
+      return { success: false, error: "Không thể tìm kiếm. Vui lòng thử lại." };
+    }
+
+    const requests: SearchRequestResult[] = (data || []).map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      request_number: r.request_number as number,
+      reason: r.reason as string,
+      priority: r.priority as Priority,
+      status: r.status as RequestStatus,
+      created_at: r.created_at as string,
+      creator_name: r.creator_name as string | null,
+      creator_email: r.creator_email as string | null,
+      assignee_name: r.assignee_name as string | null,
+      matched_items: r.matched_items as string[] | null,
+    }));
+
+    const totalCount = data && data.length > 0 ? Number(data[0].total_count) : 0;
+
+    return { 
+      success: true, 
+      data: { requests, totalCount } 
+    };
+  } catch (err) {
+    console.error("Search error:", err);
+    return { success: false, error: "Lỗi khi tìm kiếm" };
+  }
+}
+
+// ============================================================
+// DASHBOARD STATS (Phase 3)
+// ============================================================
+
+export interface DashboardStats {
+  newCount: number;
+  assignedCount: number;
+  inProgressCount: number;
+  needInfoCount: number;
+  doneThisMonth: number;
+  overdueCount: number;
+  myRequestsCount: number;
+  myTasksCount: number;
+}
+
+/**
+ * Get dashboard statistics based on user role
+ */
+export async function getDashboardStats(): Promise<ActionResult<DashboardStats>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const supabase = await createClient();
+  const userForPermission = toUserForPermission(user);
+  
+  const isAdminUser = isAdmin(userForPermission);
+  const isManagerUser = userForPermission.roles.includes("manager");
+  const isStaffUser = userForPermission.roles.includes("staff");
+
+  try {
+    // Build base filter based on role
+    const applyRoleFilter = (query: ReturnType<typeof supabase.from>) => {
+      if (isAdminUser) return query;
+      if (isManagerUser && user.unitId) return query.eq("unit_id", user.unitId);
+      if (isStaffUser) return query.eq("assignee_id", user.id);
+      return query.eq("created_by", user.id);
+    };
+
+    // Parallel queries for all stats
+    const [
+      newResult,
+      assignedResult,
+      inProgressResult,
+      needInfoResult,
+      doneResult,
+      myRequestsResult,
+      myTasksResult,
+    ] = await Promise.all([
+      // NEW count
+      applyRoleFilter(
+        supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "NEW")
+      ),
+      // ASSIGNED count
+      applyRoleFilter(
+        supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "ASSIGNED")
+      ),
+      // IN_PROGRESS count
+      applyRoleFilter(
+        supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "IN_PROGRESS")
+      ),
+      // NEED_INFO count
+      applyRoleFilter(
+        supabase.from("requests").select("id", { count: "exact", head: true }).eq("status", "NEED_INFO")
+      ),
+      // DONE this month
+      supabase
+        .from("requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "DONE")
+        .gte("completed_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      // My requests (created by me, not done/cancelled)
+      supabase
+        .from("requests")
+        .select("id", { count: "exact", head: true })
+        .eq("created_by", user.id)
+        .not("status", "in", "(DONE,CANCELLED)"),
+      // My tasks (assigned to me, in progress)
+      supabase
+        .from("requests")
+        .select("id", { count: "exact", head: true })
+        .eq("assignee_id", user.id)
+        .in("status", ["ASSIGNED", "IN_PROGRESS", "NEED_INFO"]),
+    ]);
+
+    // Get overdue count
+    const { count: overdueCount } = await supabase
+      .from("request_items")
+      .select("id, request:requests!inner(id, status, assignee_id, created_by, unit_id)", { count: "exact", head: true })
+      .lt("required_at", new Date().toISOString().split("T")[0])
+      .not("request.status", "in", "(DONE,CANCELLED)");
+
+    return {
+      success: true,
+      data: {
+        newCount: newResult.count || 0,
+        assignedCount: assignedResult.count || 0,
+        inProgressCount: inProgressResult.count || 0,
+        needInfoCount: needInfoResult.count || 0,
+        doneThisMonth: doneResult.count || 0,
+        overdueCount: overdueCount || 0,
+        myRequestsCount: myRequestsResult.count || 0,
+        myTasksCount: myTasksResult.count || 0,
+      },
+    };
+  } catch (err) {
+    console.error("Dashboard stats error:", err);
+    return { success: false, error: "Không thể tải thống kê" };
+  }
+}
+
