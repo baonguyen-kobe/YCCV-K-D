@@ -97,9 +97,6 @@ export function ProfileForm({ profile: initialProfile }: ProfileFormProps) {
         
         toast.success("Đã cập nhật hồ sơ");
         setIsEditing(false);
-        
-        // Refresh the page data to update header nav and revalidate
-        router.refresh();
       } else {
         toast.error(result.error || "Không thể cập nhật");
       }

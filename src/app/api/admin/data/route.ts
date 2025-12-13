@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUserWithRoles, toUserForPermission } from "@/lib/auth";
 import { isAdmin } from "@/lib/permissions";
 
@@ -21,7 +21,8 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS and fetch all users
+    const supabase = await createAdminClient();
     if (!supabase) {
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }

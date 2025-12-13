@@ -437,3 +437,339 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ActionRe
   revalidatePath("/profile");
   return { success: true };
 }
+
+// ============================================================
+// UNIT MANAGEMENT (Admin only)
+// ============================================================
+
+export interface UpsertUnitInput {
+  id?: string;
+  name: string;
+  code?: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export async function upsertUnit(input: UpsertUnitInput): Promise<ActionResult<{ id: string }>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  if (!input.name?.trim()) {
+    return { success: false, error: "Tên phòng ban là bắt buộc" };
+  }
+
+  const data = {
+    name: input.name.trim(),
+    code: input.code?.trim() || null,
+    description: input.description?.trim() || null,
+    is_active: input.is_active,
+  };
+
+  let result;
+  if (input.id) {
+    result = await supabase.from("units").update(data).eq("id", input.id).select();
+  } else {
+    result = await supabase.from("units").insert([data]).select();
+  }
+
+  if (result.error) {
+    console.error("Error upserting unit:", result.error);
+    return { success: false, error: "Không thể lưu phòng ban" };
+  }
+
+  revalidatePath("/admin/units");
+  return { success: true, data: { id: result.data?.[0]?.id || input.id || "" } };
+}
+
+export async function deleteUnit(unitId: string): Promise<ActionResult> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  const { error } = await supabase.from("units").delete().eq("id", unitId);
+
+  if (error) {
+    console.error("Error deleting unit:", error);
+    return { success: false, error: "Không thể xóa phòng ban" };
+  }
+
+  revalidatePath("/admin/units");
+  return { success: true };
+}
+
+// ============================================================
+// ROLE MANAGEMENT (Admin only)
+// ============================================================
+
+export interface UpsertRoleInput {
+  id?: string;
+  name: string;
+  description?: string;
+  permissions: string[];
+  is_active: boolean;
+}
+
+export async function upsertRole(input: UpsertRoleInput): Promise<ActionResult<{ id: string }>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  if (!input.name?.trim()) {
+    return { success: false, error: "Tên vai trò là bắt buộc" };
+  }
+
+  const data = {
+    name: input.name.trim().toLowerCase(),
+    description: input.description?.trim() || null,
+    permissions: input.permissions,
+    is_active: input.is_active,
+  };
+
+  let result;
+  if (input.id) {
+    result = await supabase.from("roles").update(data).eq("id", input.id).select();
+  } else {
+    result = await supabase.from("roles").insert([data]).select();
+  }
+
+  if (result.error) {
+    console.error("Error upserting role:", result.error);
+    return { success: false, error: "Không thể lưu vai trò" };
+  }
+
+  revalidatePath("/admin/roles");
+  return { success: true, data: { id: result.data?.[0]?.id || input.id || "" } };
+}
+
+export async function deleteRole(roleId: string): Promise<ActionResult> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  const { error } = await supabase.from("roles").delete().eq("id", roleId);
+
+  if (error) {
+    console.error("Error deleting role:", error);
+    return { success: false, error: "Không thể xóa vai trò" };
+  }
+
+  revalidatePath("/admin/roles");
+  return { success: true };
+}
+
+// ============================================================
+// PRIORITY MANAGEMENT (Admin only)
+// ============================================================
+
+export interface UpsertPriorityInput {
+  id?: string;
+  name: string;
+  level: number;
+  color?: string;
+  description?: string;
+  is_active: boolean;
+}
+
+export async function upsertPriority(
+  input: UpsertPriorityInput
+): Promise<ActionResult<{ id: string }>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  if (!input.name?.trim()) {
+    return { success: false, error: "Tên mức ưu tiên là bắt buộc" };
+  }
+
+  const data = {
+    name: input.name.trim(),
+    level: input.level,
+    color: input.color || null,
+    description: input.description?.trim() || null,
+    is_active: input.is_active,
+  };
+
+  let result;
+  if (input.id) {
+    result = await supabase.from("priorities").update(data).eq("id", input.id).select();
+  } else {
+    result = await supabase.from("priorities").insert([data]).select();
+  }
+
+  if (result.error) {
+    console.error("Error upserting priority:", result.error);
+    return { success: false, error: "Không thể lưu mức ưu tiên" };
+  }
+
+  revalidatePath("/admin/priorities");
+  return { success: true, data: { id: result.data?.[0]?.id || input.id || "" } };
+}
+
+export async function deletePriority(priorityId: string): Promise<ActionResult> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  const { error } = await supabase.from("priorities").delete().eq("id", priorityId);
+
+  if (error) {
+    console.error("Error deleting priority:", error);
+    return { success: false, error: "Không thể xóa mức ưu tiên" };
+  }
+
+  revalidatePath("/admin/priorities");
+  return { success: true };
+}
+
+// ============================================================
+// STATUS MANAGEMENT (Admin only)
+// ============================================================
+
+export interface UpsertStatusInput {
+  id?: string;
+  name: string;
+  code: string;
+  color?: string;
+  description?: string;
+  is_final: boolean;
+  is_active: boolean;
+}
+
+export async function upsertStatus(input: UpsertStatusInput): Promise<ActionResult<{ id: string }>> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  if (!input.name?.trim() || !input.code?.trim()) {
+    return { success: false, error: "Tên và mã trạng thái là bắt buộc" };
+  }
+
+  const data = {
+    name: input.name.trim(),
+    code: input.code.trim().toUpperCase(),
+    color: input.color || null,
+    description: input.description?.trim() || null,
+    is_final: input.is_final,
+    is_active: input.is_active,
+  };
+
+  let result;
+  if (input.id) {
+    result = await supabase.from("request_statuses").update(data).eq("id", input.id).select();
+  } else {
+    result = await supabase.from("request_statuses").insert([data]).select();
+  }
+
+  if (result.error) {
+    console.error("Error upserting status:", result.error);
+    return { success: false, error: "Không thể lưu trạng thái" };
+  }
+
+  revalidatePath("/admin/statuses");
+  return { success: true, data: { id: result.data?.[0]?.id || input.id || "" } };
+}
+
+export async function deleteStatus(statusId: string): Promise<ActionResult> {
+  const user = await getCurrentUserWithRoles();
+  if (!user) {
+    return { success: false, error: "Bạn cần đăng nhập" };
+  }
+
+  const userForPermission = toUserForPermission(user);
+  if (!isAdmin(userForPermission)) {
+    return { success: false, error: "Bạn không có quyền thực hiện thao tác này" };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { success: false, error: "Lỗi kết nối database" };
+  }
+
+  const { error } = await supabase.from("request_statuses").delete().eq("id", statusId);
+
+  if (error) {
+    console.error("Error deleting status:", error);
+    return { success: false, error: "Không thể xóa trạng thái" };
+  }
+
+  revalidatePath("/admin/statuses");
+  return { success: true };
+}
