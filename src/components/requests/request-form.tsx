@@ -27,7 +27,7 @@ const requestItemSchema = z.object({
   item_name: z.string().min(1, "Tên vật phẩm không được để trống").max(500, "Tên vật phẩm tối đa 500 ký tự"),
   category_id: z.string().optional().nullable(),
   unit_count: z.string().max(50, "Đơn vị tính tối đa 50 ký tự").optional().nullable(),
-  quantity: z.coerce.number().min(0.01, "Số lượng phải lớn hơn 0").max(9999, "Số lượng tối đa 9999"),
+  quantity: z.number().min(0.01, "Số lượng phải lớn hơn 0").max(9999, "Số lượng tối đa 9999"),
   required_at: z.string().min(1, "Ngày cần là bắt buộc").refine(
     (date) => {
       if (!date) return false;
