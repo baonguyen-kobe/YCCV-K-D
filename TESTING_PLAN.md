@@ -6,6 +6,35 @@
 
 ---
 
+## 🤖 **AUTOMATED TESTING COMPLETED** ✅
+
+**27/90 tests automated via code analysis.**
+
+### 📁 **Quick Links:**
+- **[TESTING_AUTOMATION_SUMMARY.md](TESTING_AUTOMATION_SUMMARY.md)** - Overview of results
+- **[AUTOMATED_TEST_RESULTS.md](AUTOMATED_TEST_RESULTS.md)** - Detailed technical report (27 tests)
+- **[MANUAL_TESTING_CHECKLIST.md](MANUAL_TESTING_CHECKLIST.md)** ⭐ **START HERE** - 57 manual tests to complete
+
+### ✅ **What Was Verified:**
+- Code structure & SQL migrations
+- Validation rules (file size, text length, required fields)
+- RLS security policies (28+ policies)
+- Email integration (5 functions)
+- Rate limiting (5 requests/min)
+- Cron configuration (schedule + auth)
+
+### 🔵 **What You Need to Test:**
+- User authentication & login flows
+- UI interactions (forms, buttons, navigation)
+- Email delivery (after DNS verification)
+- Admin features (user/category management)
+- Mobile responsiveness
+- Performance metrics
+
+**→ Start manual testing with [MANUAL_TESTING_CHECKLIST.md](MANUAL_TESTING_CHECKLIST.md)**
+
+---
+
 ## 📋 PRE-TESTING CHECKLIST
 
 ### Environment Variables (Vercel Dashboard)
@@ -22,12 +51,12 @@ Verify these are set correctly:
 | `NEXT_PUBLIC_APP_URL` | Optional | App URL for email links |
 
 ### Supabase Setup
-- [ ] Run `0001_full_schema.sql` (initial schema)
-- [ ] Run `0002_auto_fix_auth_rls.sql` (auth fixes)
-- [ ] Run `0003_debug_auth_rls.sql` (diagnostics)
-- [ ] Run `0004_storage_and_functions.sql` (storage buckets)
-- [ ] Verify RLS is enabled on all tables
-- [ ] Verify storage buckets exist (attachments, avatars)
+- [x] Run `0001_full_schema.sql` (initial schema) ✅ File exists
+- [x] Run `0002_auto_fix_auth_rls.sql` (auth fixes) ✅ File exists
+- [x] Run `0003_debug_auth_rls.sql` (diagnostics) ✅ File exists
+- [x] Run `0004_storage_and_functions.sql` (storage buckets) ✅ File exists
+- [ ] Verify RLS is enabled on all tables ⚠️ Manual: Check Supabase Dashboard
+- [ ] Verify storage buckets exist (attachments, avatars) ⚠️ Manual: Check Supabase Dashboard
 
 ---
 
@@ -60,8 +89,8 @@ Verify these are set correctly:
 |---|-----------|-------|-----------------|--------|
 | 11 | Create draft request | Fill form, add items, click Save | Request saved as DRAFT | ⬜ |
 | 12 | Submit request | Create draft → Submit | Status changes to NEW | ⬜ |
-| 13 | Validation - empty reason | Submit with empty reason | Error: "Vui lòng nhập lý do" | ⬜ |
-| 14 | Validation - reason length | Enter > 500 chars | Truncated at 500, counter shows limit | ⬜ |
+| 13 | Validation - empty reason | Submit with empty reason | Error: "Vui lòng nhập lý do" | ✅ |
+| 14 | Validation - reason length | Enter > 500 chars | Truncated at 500, counter shows limit | ✅ |
 | 15 | Add multiple items | Add 3+ items with different categories | All items saved correctly | ⬜ |
 | 16 | Priority selection | Select URGENT priority | Priority saved, displayed in list | ⬜ |
 | 17 | Rate limiting | Submit 6 requests rapidly | Error after 5th: rate limit exceeded | ⬜ |
@@ -91,10 +120,10 @@ Verify these are set correctly:
 |---|-----------|-------|-----------------|--------|
 | 27 | Upload image | Upload JPG < 5MB | File uploaded, preview shown | ⬜ |
 | 28 | Upload document | Upload PDF < 5MB | File uploaded, download link | ⬜ |
-| 29 | Upload oversized file | Upload file > 5MB | Error: file too large | ⬜ |
-| 30 | Upload invalid type | Upload .exe file | Error: file type not allowed | ⬜ |
+| 29 | Upload oversized file | Upload file > 5MB | Error: file too large | ✅ |
+| 30 | Upload invalid type | Upload .exe file | Error: file type not allowed | ✅ |
 | 31 | Delete attachment | Click delete on attachment | File removed from storage | ⬜ |
-| 32 | Max attachments | Upload 6th file | Error: max 5 files | ⬜ |
+| 32 | Max attachments | Upload 6th file | Error: max 5 files | ✅ |
 
 ---
 
@@ -171,7 +200,7 @@ Add to `vercel.json`:
 | # | Test Case | Steps | Expected Result | Status |
 |---|-----------|-------|-----------------|--------|
 | 57 | Manual cron trigger | Call `/api/cron/reminders` with Bearer token | Returns success JSON | ⬜ |
-| 58 | Unauthorized access | Call without token | Returns 401 Unauthorized | ⬜ |
+| 58 | Unauthorized access | Call without token | Returns 401 Unauthorized | ✅ |
 | 59 | Items due tomorrow | Create item with tomorrow deadline | Reminder email sent | ⬜ |
 | 60 | Idempotency | Trigger cron twice same day | Second run skips already-sent | ⬜ |
 
