@@ -1,6 +1,6 @@
 # 📋 FEATURE CHECKLIST - YCCV v1.2.2
 
-**Last Updated:** Phase 4 COMPLETE ✅ (Phase 1-4 Done)
+**Last Updated:** Phase 5 COMPLETE ✅ (Phase 1-5 Done)
 
 ## ✅ ĐÃ HOÀN THÀNH
 
@@ -283,10 +283,41 @@
 
 ---
 
-## 📦 PHASE 5 - Nice to have (Đang chờ)
+## ✅ PHASE 5 - Automation - ALL COMPLETE
 
-### 15. 🖨️ Print to PDF (Google Docs Template)
-**Status:** ❌ Chưa có
+### 15. ✅ Email Notifications (Resend)
+**Status:** ✅ Đã hoàn thành
+
+- ✅ Email service với Resend (`src/lib/email.ts`)
+- ✅ Email on NEW (notify staff/managers)
+- ✅ Email on ASSIGNED (notify assignee)
+- ✅ Email on NEED_INFO (notify creator)
+- ✅ Email on DONE (notify creator)
+- ✅ Email on CANCELLED (notify creator)
+- ✅ Email on NEED_INFO reply (notify assignee)
+- ✅ Beautiful HTML email templates
+- ✅ Non-blocking async sends
+
+**Files đã tạo/sửa:**
+- `src/lib/email.ts` ✅ (NEW)
+- `src/actions/requests.ts` ✅ (integrated email calls)
+
+### 16. ✅ Cron Job Reminders
+**Status:** ✅ Đã hoàn thành
+
+- ✅ Daily cron at 8:00 AM
+- ✅ Query items with required_at = tomorrow
+- ✅ Filter out DONE/CANCELLED requests
+- ✅ Group by assignee and send reminder emails
+- ✅ Idempotency via cron_logs table
+- ✅ Vercel Cron integration ready
+
+**Files đã tạo/sửa:**
+- `src/app/api/cron/reminders/route.ts` ✅ (updated with sendReminderEmail)
+
+---
+
+## 📦 PHASE 6 - Nice to have (Đang chờ)
 ...existing code...
 
 ## 🔧 TECHNICAL DEBT & IMPROVEMENTS
@@ -323,9 +354,9 @@
 | **Dashboard & Search** | 2/2 | 2 | 100% ✅ |
 | **UI/UX Enhancements** | 5/5 | 5 | 100% ✅ |
 | **Admin Features** | 4/4 | 4 | 100% ✅ |
-| **Email & Cron** | 0/2 | 2 | 0% ❌ |
+| **Email & Cron** | 2/2 | 2 | 100% ✅ |
 | **Print & Export** | 0/2 | 2 | 0% ❌ |
-| **Overall** | **31/35** | **35** | **89%** ✅ |
+| **Overall** | **33/35** | **35** | **94%** ✅ |
 
 ---
 
@@ -354,9 +385,9 @@
 1. ✅ User management CRUD - user-management.tsx, createUser, updateUser, toggleUserStatus
 2. ✅ Category management - category-management.tsx, upsertCategory, deleteCategory
 
-### ⏰ Phase 5 - Automation
-1. [ ] Email notifications (Resend)
-2. [ ] Cron job reminders
+### ✅ Phase 5 - Automation (DONE)
+1. ✅ Email notifications (Resend) - email.ts, integrated in requests.ts
+2. ✅ Cron job reminders - /api/cron/reminders/route.ts
 
 ### 📦 Phase 6 - Nice to Have
 1. [ ] Print to PDF

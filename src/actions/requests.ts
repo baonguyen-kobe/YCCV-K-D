@@ -23,6 +23,14 @@ import {
   MAX_ATTACHMENTS_PER_REQUEST,
 } from "@/lib/constants";
 import {
+  sendNewRequestEmail,
+  sendAssignedEmail,
+  sendNeedInfoEmail,
+  sendCompletedEmail,
+  sendCancelledEmail,
+  sendNeedInfoReplyEmail,
+} from "@/lib/email";
+import {
   validateInput,
   createRequestSchema,
   updateRequestSchema,
@@ -81,6 +89,86 @@ async function getRequestForPermission(
   }
 
   return request;
+}
+
+/**
+ * Get request data for email notifications
+ */
+async function getRequestEmailData(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  requestId: string
+) {
+  const { data: request } = await supabase
+    .from("requests")
+    .select(`
+      id,
+      request_number,
+      reason,
+      priority,
+      status,
+      created_by,
+      assignee_id,
+      unit_id,
+      creator:users!requests_created_by_fkey (id, full_name, email),
+      assignee:users!requests_assignee_id_fkey (id, full_name, email),
+      unit:units!requests_unit_id_fkey (name)
+    `)
+    .eq("id", requestId)
+    .single();
+
+  if (!request) return null;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const creator = request.creator as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const assignee = request.assignee as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const unit = request.unit as any;
+
+  return {
+    requestId: request.id,
+    requestNumber: request.request_number || 0,
+    reason: request.reason || "",
+    priority: request.priority || "NORMAL",
+    status: request.status,
+    creatorName: Array.isArray(creator) ? creator[0]?.full_name : creator?.full_name || "N/A",
+    creatorEmail: Array.isArray(creator) ? creator[0]?.email : creator?.email || "",
+    assigneeName: Array.isArray(assignee) ? assignee[0]?.full_name : assignee?.full_name,
+    assigneeEmail: Array.isArray(assignee) ? assignee[0]?.email : assignee?.email,
+    unitName: Array.isArray(unit) ? unit[0]?.name : unit?.name,
+  };
+}
+
+/**
+ * Get manager emails for a unit (for NEW request notification)
+ */
+async function getManagerEmails(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>
+): Promise<string[]> {
+  // Get staff role (managers are typically staff who handle requests)
+  const { data: staffRole } = await supabase
+    .from("roles")
+    .select("id")
+    .eq("name", "staff")
+    .single();
+
+  if (!staffRole) return [];
+
+  // Get all staff emails
+  const { data: staffUsers } = await supabase
+    .from("user_roles")
+    .select("user:users(email)")
+    .eq("role_id", staffRole.id);
+
+  if (!staffUsers) return [];
+
+  return staffUsers
+    .map((ur) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const u = ur.user as any;
+      return Array.isArray(u) ? u[0]?.email : u?.email;
+    })
+    .filter(Boolean) as string[];
 }
 
 /**
@@ -481,6 +569,19 @@ export async function submitRequest(
 
   // Status change is logged automatically by trigger
 
+  // Send email notification to managers (async, non-blocking)
+  try {
+    const emailData = await getRequestEmailData(supabase, requestId);
+    const managerEmails = await getManagerEmails(supabase);
+    if (emailData && managerEmails.length > 0) {
+      sendNewRequestEmail(emailData, managerEmails).catch((err) =>
+        console.error("[EMAIL] Failed to send NEW notification:", err)
+      );
+    }
+  } catch (emailError) {
+    console.error("[EMAIL] Error preparing NEW notification:", emailError);
+  }
+
   revalidatePath(`/requests/${requestId}`);
   revalidatePath("/requests");
   revalidatePath("/dashboard");
@@ -568,6 +669,18 @@ export async function assignRequest(
     new_status: "ASSIGNED",
     meta_data: { assignee_id: assigneeId },
   });
+
+  // Send email notification to assignee (async, non-blocking)
+  try {
+    const emailData = await getRequestEmailData(supabase, requestId);
+    if (emailData && emailData.assigneeEmail) {
+      sendAssignedEmail(emailData).catch((err) =>
+        console.error("[EMAIL] Failed to send ASSIGNED notification:", err)
+      );
+    }
+  } catch (emailError) {
+    console.error("[EMAIL] Error preparing ASSIGNED notification:", emailError);
+  }
 
   revalidatePath(`/requests/${requestId}`);
   revalidatePath("/requests");
@@ -668,6 +781,31 @@ export async function updateRequestStatus(
   }
 
   // Status change is logged automatically by trigger
+
+  // Send email notifications based on status (async, non-blocking)
+  try {
+    const emailData = await getRequestEmailData(supabase, requestId);
+    if (emailData) {
+      if (newStatus === "NEED_INFO") {
+        // Notify creator that more info is needed
+        sendNeedInfoEmail(emailData, note || "Vui lòng bổ sung thông tin").catch((err) =>
+          console.error("[EMAIL] Failed to send NEED_INFO notification:", err)
+        );
+      } else if (newStatus === "DONE") {
+        // Notify creator that request is completed
+        sendCompletedEmail(emailData, note).catch((err) =>
+          console.error("[EMAIL] Failed to send DONE notification:", err)
+        );
+      } else if (newStatus === "CANCELLED") {
+        // Notify creator that request is cancelled
+        sendCancelledEmail(emailData, note, user.full_name || user.email).catch((err) =>
+          console.error("[EMAIL] Failed to send CANCELLED notification:", err)
+        );
+      }
+    }
+  } catch (emailError) {
+    console.error("[EMAIL] Error preparing status notification:", emailError);
+  }
 
   revalidatePath(`/requests/${requestId}`);
   revalidatePath("/requests");
@@ -774,6 +912,20 @@ export async function addComment(
     action: "comment_added",
     meta_data: { comment_id: comment.id, is_internal: validatedInput.is_internal },
   });
+
+  // If request status is NEED_INFO and creator comments, notify assignee
+  if (request.status === "NEED_INFO" && request.created_by === user.id && !validatedInput.is_internal) {
+    try {
+      const emailData = await getRequestEmailData(supabase, requestId);
+      if (emailData && emailData.assigneeEmail) {
+        sendNeedInfoReplyEmail(emailData, validatedInput.content).catch((err) =>
+          console.error("[EMAIL] Failed to send NEED_INFO reply notification:", err)
+        );
+      }
+    } catch (emailError) {
+      console.error("[EMAIL] Error preparing comment notification:", emailError);
+    }
+  }
 
   revalidatePath(`/requests/${requestId}`);
 

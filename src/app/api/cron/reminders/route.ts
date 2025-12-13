@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { sendReminderEmail } from "@/lib/email";
 
 /**
  * Cron Job: Daily Reminders
@@ -131,12 +132,24 @@ export async function GET(request: Request) {
         continue;
       }
 
-      // TODO: Actually send email via Resend
-      // const { error: emailError } = await sendEmail({
-      //   to: recipientEmail,
-      //   subject: `[Nhắc nhở] Bạn có ${data.items.length} yêu cầu sắp đến hạn`,
-      //   body: formatReminderEmail(data.items, tomorrowStr),
-      // });
+      // Send reminder email via Resend
+      const reminderItems = data.items.map((item) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const request = item.request as any;
+        return {
+          requestId: request?.id || "",
+          requestNumber: request?.request_number || 0,
+          itemName: item.item_name,
+          priority: request?.priority || "NORMAL",
+          deadline: new Date(item.required_at).toLocaleDateString("vi-VN"),
+        };
+      });
+
+      const emailResult = await sendReminderEmail(
+        recipientEmail,
+        data.name,
+        reminderItems
+      );
 
       // Log the email sent (for idempotency)
       await supabase.from("cron_logs").insert({
@@ -144,16 +157,21 @@ export async function GET(request: Request) {
         job_date: jobDate,
         email_recipient: recipientEmail,
         email_type: "reminder",
-        status: "sent", // Change to 'failed' if email fails
+        status: emailResult.success ? "sent" : "failed",
         metadata: {
           items_count: data.items.length,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           request_ids: data.items.map((i) => (i.request as any)?.id),
+          error: emailResult.error || null,
         },
       });
 
-      console.log(`[CRON] Sent reminder to ${recipientEmail} for ${data.items.length} items`);
-      emailsSent++;
+      if (emailResult.success) {
+        console.log(`[CRON] Sent reminder to ${recipientEmail} for ${data.items.length} items`);
+        emailsSent++;
+      } else {
+        console.error(`[CRON] Failed to send reminder to ${recipientEmail}:`, emailResult.error);
+      }
     }
 
     console.log(`[CRON] Job completed. Sent: ${emailsSent}, Skipped: ${emailsSkipped}`);
