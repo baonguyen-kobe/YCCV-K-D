@@ -115,7 +115,7 @@ export function RequestForm({ categories, mode = "create", initialData }: Reques
       : {
           reason: "",
           priority: "NORMAL",
-          items: [{ item_name: "", quantity: 1, unit_count: "", notes: "" }],
+          items: [{ item_name: "", quantity: 1, unit_count: "", notes: "", required_at: "", category_id: "", link_ref: "" }],
         },
   });
 
@@ -322,7 +322,7 @@ export function RequestForm({ categories, mode = "create", initialData }: Reques
             <button
               type="button"
               onClick={() =>
-                append({ item_name: "", quantity: 1, unit_count: "", notes: "" })
+                append({ item_name: "", quantity: 1, unit_count: "", notes: "", required_at: "", category_id: "", link_ref: "" })
               }
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
             >

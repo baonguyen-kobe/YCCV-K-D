@@ -64,7 +64,7 @@ export function CreateRequestForm({ categories }: CreateRequestFormProps) {
     defaultValues: {
       reason: "",
       priority: "NORMAL",
-      items: [{ item_name: "", quantity: 1, unit_count: "", notes: "" }],
+      items: [{ item_name: "", quantity: 1, unit_count: "", notes: "", required_at: "", category_id: "", link_ref: "" }],
     },
   });
 
@@ -221,7 +221,7 @@ export function CreateRequestForm({ categories }: CreateRequestFormProps) {
             <button
               type="button"
               onClick={() =>
-                append({ item_name: "", quantity: 1, unit_count: "", notes: "" })
+                append({ item_name: "", quantity: 1, unit_count: "", notes: "", required_at: "", category_id: "", link_ref: "" })
               }
               className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700"
             >
