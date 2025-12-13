@@ -4,6 +4,9 @@ import { redirect } from "next/navigation";
 
 export default async function StatusesPage() {
   const supabase = await createClient();
+  if (!supabase) {
+    return <div className="text-red-600">Lỗi kết nối database</div>;
+  }
 
   const { data: user } = await supabase.auth.getUser();
   if (!user) redirect("/login");
