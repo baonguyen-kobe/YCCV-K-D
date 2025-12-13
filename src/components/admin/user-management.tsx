@@ -1,9 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import { z } from "zod";
 import { createUser, updateUser, toggleUserStatus } from "@/actions/admin";
 import { toast } from "sonner";
 import { Plus, Edit, UserX, UserCheck, Search, X } from "lucide-react";
+
+// Validation schema
+const userFormSchema = z.object({
+  email: z.string().email("Email không hợp lệ").max(255, "Email tối đa 255 ký tự").min(1, "Email không được để trống"),
+  full_name: z.string().min(1, "Họ tên không được để trống").max(255, "Họ tên tối đa 255 ký tự"),
+  phone: z.string()
+    .refine(
+      (val) => !val || /^[0-9+\s\-()]*$/.test(val),
+      "Số điện thoại chỉ được chứa số, dấu cách, +, -, ()"
+    )
+    .refine(
+      (val) => !val || val.length <= 20,
+      "Số điện thoại tối đa 20 ký tự"
+    )
+    .optional()
+    .or(z.literal("")),
+  unit_id: z.string().optional(),
+  roles: z.array(z.string()).min(1, "Cần chọn ít nhất 1 vai trò"),
+});
+
+type UserFormData = z.infer<typeof userFormSchema>;
 
 interface Role {
   id: string;
@@ -39,6 +61,7 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -55,9 +78,28 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
       u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const validateForm = () => {
+    try {
+      userFormSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Partial<Record<keyof UserFormData, string>> = {};
+        error.errors.forEach((err) => {
+          const path = err.path[0] as keyof UserFormData;
+          newErrors[path] = err.message;
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
+
   const openCreateModal = () => {
     setEditingUser(null);
     setFormData({ email: "", full_name: "", phone: "", unit_id: "", roles: [] });
+    setErrors({});
     setShowModal(true);
   };
 
@@ -70,11 +112,19 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
       unit_id: user.unit?.id || "",
       roles: user.roles.map((r) => r.id),
     });
+    setErrors({});
     setShowModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -83,7 +133,7 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
         const result = await updateUser({
           id: editingUser.id,
           full_name: formData.full_name,
-          phone: formData.phone,
+          phone: formData.phone || undefined,
           unit_id: formData.unit_id || null,
           roles: formData.roles,
         });
@@ -99,7 +149,7 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
         const result = await createUser({
           email: formData.email,
           full_name: formData.full_name,
-          phone: formData.phone,
+          phone: formData.phone || undefined,
           unit_id: formData.unit_id || undefined,
           roles: formData.roles,
         });
@@ -294,10 +344,15 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                    className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
+                    onChange={(e) => {
+                      setFormData((p) => ({ ...p, email: e.target.value }));
+                      setErrors((p) => ({ ...p, email: undefined }));
+                    }}
+                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                      errors.email ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"
+                    }`}
                   />
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
                 </div>
               )}
 
@@ -309,10 +364,16 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
                 <input
                   type="text"
                   value={formData.full_name}
-                  onChange={(e) => setFormData((p) => ({ ...p, full_name: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
+                  onChange={(e) => {
+                    setFormData((p) => ({ ...p, full_name: e.target.value }));
+                    setErrors((p) => ({ ...p, full_name: undefined }));
+                  }}
+                  maxLength={255}
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                    errors.full_name ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"
+                  }`}
                 />
+                {errors.full_name && <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>}
               </div>
 
               {/* Phone */}
@@ -323,9 +384,17 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
                 <input
                   type="tel"
                   value={formData.phone}
-                  onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => {
+                    setFormData((p) => ({ ...p, phone: e.target.value }));
+                    setErrors((p) => ({ ...p, phone: undefined }));
+                  }}
+                  maxLength={20}
+                  placeholder="0912345678 hoặc +84 912 345 678"
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                    errors.phone ? "border-red-500 focus:ring-red-500" : "focus:ring-blue-500"
+                  }`}
                 />
+                {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
               </div>
 
               {/* Unit */}
@@ -350,7 +419,7 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
               {/* Roles */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vai trò
+                  Vai trò <span className="text-red-500">*</span>
                 </label>
                 <div className="space-y-2">
                   {roles.map((role) => (
@@ -361,13 +430,17 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
                       <input
                         type="checkbox"
                         checked={formData.roles.includes(role.id)}
-                        onChange={() => toggleRole(role.id)}
+                        onChange={() => {
+                          toggleRole(role.id);
+                          setErrors((p) => ({ ...p, roles: undefined }));
+                        }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm">{role.display_name}</span>
                     </label>
                   ))}
                 </div>
+                {errors.roles && <p className="mt-2 text-sm text-red-600">{errors.roles}</p>}
               </div>
 
               {/* Actions */}

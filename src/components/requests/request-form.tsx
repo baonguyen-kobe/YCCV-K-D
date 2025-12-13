@@ -10,23 +10,39 @@ import { toast } from "sonner";
 import { Plus, Trash2, Save, Send, ArrowLeft, Edit } from "lucide-react";
 import Link from "next/link";
 import type { Priority } from "@/types/database.types";
+import { MAX_REASON_LENGTH } from "@/lib/constants";
+
+// Helper to get today's date in YYYY-MM-DD format
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // Form validation schema
 const requestItemSchema = z.object({
   id: z.string().optional(),
-  item_name: z.string().min(1, "Tên vật phẩm không được để trống"),
+  item_name: z.string().min(1, "Tên vật phẩm không được để trống").max(500, "Tên vật phẩm tối đa 500 ký tự"),
   category_id: z.string().optional().nullable(),
-  unit_count: z.string().optional().nullable(),
-  quantity: z.number().min(1, "Số lượng phải lớn hơn 0"),
-  required_at: z.string().optional().nullable(),
+  unit_count: z.string().max(50, "Đơn vị tính tối đa 50 ký tự").optional().nullable(),
+  quantity: z.coerce.number().min(0.01, "Số lượng phải lớn hơn 0").max(9999, "Số lượng tối đa 9999"),
+  required_at: z.string().min(1, "Ngày cần là bắt buộc").refine(
+    (date) => {
+      if (!date) return false;
+      return new Date(date) >= new Date(getTodayDate());
+    },
+    "Ngày cần phải là ngày hôm nay hoặc trong tương lai"
+  ),
   link_ref: z.string().url("Link không hợp lệ").optional().or(z.literal("")).nullable(),
-  notes: z.string().optional().nullable(),
+  notes: z.string().max(1000, "Ghi chú tối đa 1000 ký tự").optional().nullable(),
 });
 
 const requestFormSchema = z.object({
-  reason: z.string().min(10, "Lý do yêu cầu phải có ít nhất 10 ký tự").max(1000, "Lý do yêu cầu không được vượt quá 1000 ký tự"),
+  reason: z.string().min(1, "Lý do yêu cầu không được để trống").max(MAX_REASON_LENGTH, `Lý do yêu cầu tối đa ${MAX_REASON_LENGTH} ký tự`),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
-  items: z.array(requestItemSchema).min(1, "Phải có ít nhất một mục yêu cầu"),
+  items: z.array(requestItemSchema).min(1, "Phải có ít nhất một mục yêu cầu").max(5, "Tối đa 5 mục yêu cầu"),
 });
 
 type RequestFormData = z.infer<typeof requestFormSchema>;
@@ -252,6 +268,7 @@ export function RequestForm({ categories, mode = "create", initialData }: Reques
           <textarea
             {...register("reason")}
             rows={4}
+            maxLength={MAX_REASON_LENGTH}
             className="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             placeholder="Mô tả chi tiết lý do và mục đích của yêu cầu này..."
           />
@@ -374,8 +391,9 @@ export function RequestForm({ categories, mode = "create", initialData }: Reques
                       </label>
                       <input
                         type="number"
-                        min="1"
-                        {...register(`items.${index}.quantity`)}
+                        step="0.01"
+                        min="0.01"
+                        {...register(`items.${index}.quantity`, { valueAsNumber: true })}
                         className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       {errors.items?.[index]?.quantity && (
@@ -399,7 +417,7 @@ export function RequestForm({ categories, mode = "create", initialData }: Reques
                   {/* Required Date */}
                   <div>
                     <label className="block text-xs text-gray-500 mb-1">
-                      Ngày cần
+                      Ngày cần <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="date"
@@ -407,6 +425,11 @@ export function RequestForm({ categories, mode = "create", initialData }: Reques
                       min={new Date().toISOString().split("T")[0]}
                       className="w-full border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    {errors.items?.[index]?.required_at && (
+                      <p className="mt-1 text-xs text-red-500">
+                        {errors.items[index]?.required_at?.message}
+                      </p>
+                    )}
                   </div>
 
                   {/* Link Reference */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { updateProfile } from "@/actions/admin";
 import { toast } from "sonner";
 import { User, Mail, Phone, Building, Shield, Calendar, Save } from "lucide-react";
@@ -27,28 +28,78 @@ interface ProfileFormProps {
   profile: Profile;
 }
 
-export function ProfileForm({ profile }: ProfileFormProps) {
+export function ProfileForm({ profile: initialProfile }: ProfileFormProps) {
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
+  const [profile, setProfile] = useState(initialProfile);
+  const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatar_url);
   const [formData, setFormData] = useState({
-    full_name: profile.full_name || "",
-    phone: profile.phone || "",
+    full_name: initialProfile.full_name || "",
+    phone: initialProfile.phone || "",
   });
+  const [errors, setErrors] = useState({
+    full_name: "",
+    phone: "",
+  });
+
+  // Validation according to INPUT_FIELDS_AND_FORMATS.md
+  const validateForm = () => {
+    const newErrors = {
+      full_name: "",
+      phone: "",
+    };
+
+    // Full name: min 1, max 255 characters
+    if (formData.full_name.trim().length < 1) {
+      newErrors.full_name = "Họ và tên không được để trống";
+    } else if (formData.full_name.length > 255) {
+      newErrors.full_name = "Họ và tên không được vượt quá 255 ký tự";
+    }
+
+    // Phone: optional, max 20 chars, only numbers, spaces, +, -, ()
+    if (formData.phone.trim()) {
+      if (formData.phone.length > 20) {
+        newErrors.phone = "Số điện thoại không được vượt quá 20 ký tự";
+      } else if (!/^[0-9+\s\-()]*$/.test(formData.phone)) {
+        newErrors.phone = "Số điện thoại chỉ được chứa số, dấu cách, +, -, ()";
+      }
+    }
+
+    setErrors(newErrors);
+    return !newErrors.full_name && !newErrors.phone;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      toast.error("Vui lòng kiểm tra lại thông tin");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const result = await updateProfile({
-        full_name: formData.full_name,
-        phone: formData.phone,
+        full_name: formData.full_name.trim(),
+        phone: formData.phone.trim() || undefined,
       });
 
       if (result.success) {
+        // Update local profile state immediately
+        setProfile({
+          ...profile,
+          full_name: formData.full_name.trim(),
+          phone: formData.phone.trim() || null,
+        });
+        
         toast.success("Đã cập nhật hồ sơ");
         setIsEditing(false);
+        
+        // Refresh the page data to update header nav and revalidate
+        router.refresh();
       } else {
         toast.error(result.error || "Không thể cập nhật");
       }
@@ -124,14 +175,26 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               Họ và tên
             </label>
             {isEditing ? (
-              <input
-                type="text"
-                value={formData.full_name}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, full_name: e.target.value }))
-                }
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div>
+                <input
+                  type="text"
+                  value={formData.full_name}
+                  onChange={(e) => {
+                    setFormData((p) => ({ ...p, full_name: e.target.value }));
+                    setErrors((p) => ({ ...p, full_name: "" }));
+                  }}
+                  maxLength={255}
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                    errors.full_name
+                      ? "border-red-500 focus:ring-red-500"
+                      : "focus:ring-blue-500"
+                  }`}
+                  placeholder="Nhập họ và tên"
+                />
+                {errors.full_name && (
+                  <p className="text-xs text-red-600 mt-1">{errors.full_name}</p>
+                )}
+              </div>
             ) : (
               <p className="text-gray-900">
                 {profile.full_name || "(Chưa cập nhật)"}
@@ -148,14 +211,26 @@ export function ProfileForm({ profile }: ProfileFormProps) {
               Số điện thoại
             </label>
             {isEditing ? (
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, phone: e.target.value }))
-                }
-                className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => {
+                    setFormData((p) => ({ ...p, phone: e.target.value }));
+                    setErrors((p) => ({ ...p, phone: "" }));
+                  }}
+                  maxLength={20}
+                  className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 ${
+                    errors.phone
+                      ? "border-red-500 focus:ring-red-500"
+                      : "focus:ring-blue-500"
+                  }`}
+                  placeholder="(Chưa cập nhật)"
+                />
+                {errors.phone && (
+                  <p className="text-xs text-red-600 mt-1">{errors.phone}</p>
+                )}
+              </div>
             ) : (
               <p className="text-gray-900">
                 {profile.phone || "(Chưa cập nhật)"}
@@ -223,6 +298,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
                     full_name: profile.full_name || "",
                     phone: profile.phone || "",
                   });
+                  setErrors({ full_name: "", phone: "" });
                 }}
                 className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
               >

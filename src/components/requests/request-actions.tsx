@@ -135,7 +135,7 @@ export function RequestActions({
             ) : (actionType === "cancel" || newStatus === "DONE" || newStatus === "NEED_INFO") && (
               <div className="mb-4">
                 <label className="block text-sm text-gray-600 mb-2">
-                  {actionType === "cancel" ? "Lý do huỷ (tuỳ chọn)" : 
+                  {actionType === "cancel" ? "Lý do huỷ *" : 
                    newStatus === "NEED_INFO" ? "Mô tả thông tin cần bổ sung *" :
                    "Ghi chú hoàn thành (tuỳ chọn)"}
                 </label>

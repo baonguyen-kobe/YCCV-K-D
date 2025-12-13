@@ -50,11 +50,11 @@ export const requestItemSchema = z.object({
     .max(500, "Tên hạng mục quá dài (tối đa 500 ký tự)"),
   unit_count: z.string().max(50, "Đơn vị tính quá dài").optional().nullable(),
   quantity: z
-    .number()
+    .coerce.number()
     .min(0.01, "Số lượng phải lớn hơn 0")
     .max(999999, "Số lượng quá lớn")
     .default(1),
-  required_at: z.string().date("Ngày không hợp lệ").optional().nullable(),
+  required_at: z.string().datetime().optional().nullable().or(z.literal("")),
   link_ref: z.string().url("Link không hợp lệ").optional().nullable().or(z.literal("")),
   notes: z.string().max(500, "Ghi chú quá dài").optional().nullable(),
 });
@@ -66,7 +66,7 @@ export const createRequestSchema = z.object({
   reason: z
     .string()
     .min(1, "Lý do/Căn cứ không được để trống")
-    .max(MAX_REASON_LENGTH, `Lý do/Căn cứ tối đa ${MAX_REASON_LENGTH} ký tự`),
+    .max(MAX_REASON_LENGTH, `Lý do/Căn cứ tối đa ${MAX_REASON_LENGTH} ký tự"),
   priority: prioritySchema.default("NORMAL"),
   items: z
     .array(requestItemSchema)
@@ -106,19 +106,32 @@ export const assignRequestSchema = z.object({
 /**
  * Schema for changing request status
  */
-export const changeStatusSchema = z.object({
-  request_id: uuidSchema,
-  new_status: statusSchema,
-  note: z.string().max(500, "Ghi chú quá dài").optional(),
-  completion_note: z
-    .string()
-    .max(MAX_COMPLETION_NOTE_LENGTH, `Ghi chú hoàn thành tối đa ${MAX_COMPLETION_NOTE_LENGTH} ký tự`)
-    .optional(),
-  cancel_reason: z
-    .string()
-    .max(MAX_CANCEL_REASON_LENGTH, `Lý do hủy tối đa ${MAX_CANCEL_REASON_LENGTH} ký tự`)
-    .optional(),
-});
+export const changeStatusSchema = z
+  .object({
+    request_id: uuidSchema,
+    new_status: statusSchema,
+    note: z.string().max(500, "Ghi chú quá dài").optional(),
+    completion_note: z
+      .string()
+      .max(MAX_COMPLETION_NOTE_LENGTH, `Ghi chú hoàn thành tối đa ${MAX_COMPLETION_NOTE_LENGTH} ký tự`)
+      .optional(),
+    cancel_reason: z
+      .string()
+      .max(MAX_CANCEL_REASON_LENGTH, `Lý do hủy tối đa ${MAX_CANCEL_REASON_LENGTH} ký tự`)
+      .optional(),
+  })
+  .refine(
+    ({ new_status, cancel_reason }) => {
+      if (new_status === "CANCELLED") {
+        return cancel_reason && cancel_reason.trim().length > 0;
+      }
+      return true;
+    },
+    {
+      message: "Lý do hủy bắt buộc khi thay đổi trạng thái thành Đã hủy",
+      path: ["cancel_reason"],
+    }
+  )
 
 /**
  * Schema for cancelling a request
@@ -156,11 +169,28 @@ export const addCommentSchema = z.object({
  */
 export const attachmentSchema = z.object({
   request_id: uuidSchema.optional().nullable(),
-  file_name: z.string().min(1, "Tên file không được để trống").max(255),
+  file_name: z
+    .string()
+    .min(1, "Tên file không được để trống")
+    .max(255)
+    .refine(
+      (name) => {
+        const ext = name.split(".").pop()?.toLowerCase();
+        const ALLOWED_EXT = ["pdf", "doc", "docx", "xls", "xlsx", "jpg", "jpeg", "png", "gif", "webp"];
+        return ALLOWED_EXT.includes(ext || "");
+      },
+      "Định dạng file không được phép. Được phép: PDF, Word, Excel, JPG, PNG, GIF, WebP"
+    ),
   file_type: z.enum(["file", "external_url"]),
   file_size: z.number().max(MAX_FILE_SIZE_BYTES, "File quá lớn (tối đa 5MB)").optional(),
   file_url: z.string().min(1, "URL file không được để trống"),
-  mime_type: z.string().optional(),
+  mime_type: z
+    .string()
+    .refine(
+      (type) => ALLOWED_FILE_TYPES.includes(type),
+      "Loại file MIME không được phép"
+    )
+    .optional(),
   temp_token: z.string().optional(),
 });
 
@@ -184,14 +214,22 @@ export const externalUrlSchema = z.object({
 export const createUserSchema = z.object({
   email: emailSchema,
   full_name: z.string().min(1, "Họ tên không được để trống").max(255),
-  phone: z.string().max(20, "Số điện thoại quá dài").optional(),
+  phone: z
+    .string()
+    .regex(/^[0-9+\s\-\(\)]*$/, "Số điện thoại chỉ chứa số, dấu cách, dấu + , - , ( , )")
+    .max(20, "Số điện thoại quá dài")
+    .optional(),
   unit_id: uuidSchema.optional().nullable(),
   role_ids: z.array(uuidSchema).min(1, "Cần chọn ít nhất 1 vai trò"),
   password: z
     .string()
     .min(8, "Mật khẩu tối thiểu 8 ký tự")
+    .regex(/^(?=.*[a-z])/, "Mật khẩu phải có chữ thường")
+    .regex(/^(?=.*[A-Z])/, "Mật khẩu phải có chữ hoa")
+    .regex(/^(?=.*\d)/, "Mật khẩu phải có chữ số")
+    .regex(/^(?=.*[@$!%*?&])/, "Mật khẩu phải có ký tự đặc biệt (@$!%*?&)")
     .max(100, "Mật khẩu quá dài")
-    .optional(), // Optional if using Google OAuth
+    .optional(),
 });
 
 /**
@@ -199,7 +237,12 @@ export const createUserSchema = z.object({
  */
 export const updateProfileSchema = z.object({
   full_name: z.string().min(1, "Họ tên không được để trống").max(255).optional(),
-  phone: z.string().max(20, "Số điện thoại quá dài").optional().nullable(),
+  phone: z
+    .string()
+    .regex(/^[0-9+\s\-\(\)]*$/, "Số điện thoại chỉ chứa số, dấu cách, dấu + , - , ( , )")
+    .max(20, "Số điện thoại quá dài")
+    .optional()
+    .nullable(),
   avatar_url: z.string().url("URL avatar không hợp lệ").optional().nullable(),
 });
 
@@ -209,7 +252,12 @@ export const updateProfileSchema = z.object({
 export const updateUserSchema = z.object({
   id: uuidSchema,
   full_name: z.string().max(255).optional(),
-  phone: z.string().max(20).optional().nullable(),
+  phone: z
+    .string()
+    .regex(/^[0-9+\s\-\(\)]*$/, "Số điện thoại chỉ chứa số, dấu cách, dấu + , - , ( , )")
+    .max(20, "Số điện thoại quá dài")
+    .optional()
+    .nullable(),
   unit_id: uuidSchema.optional().nullable(),
   role_ids: z.array(uuidSchema).optional(),
   is_active: z.boolean().optional(),

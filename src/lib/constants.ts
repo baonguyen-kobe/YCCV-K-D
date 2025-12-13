@@ -6,7 +6,7 @@
 // ============================================================
 // APP INFO
 // ============================================================
-export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Há»‡ thá»‘ng YÃªu cáº§u CÃ´ng viá»‡c";
+export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || "Hệ thống Yêu cầu Công việc";
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 // ============================================================
@@ -36,7 +36,7 @@ export const ALLOWED_FILE_TYPES = [
 // ============================================================
 // TEXT LIMITS (per PRD)
 // ============================================================
-export const MAX_REASON_LENGTH = 500;
+export const MAX_REASON_LENGTH = 1000;
 export const MAX_COMPLETION_NOTE_LENGTH = 500;
 export const MAX_CANCEL_REASON_LENGTH = 500;
 export const MAX_COMMENT_LENGTH = 1000;
@@ -68,43 +68,43 @@ export const ROUTES = {
 // ============================================================
 export const STATUS_CONFIG = {
   DRAFT: {
-    label: "NhÃ¡p",
+    label: "Nháp",
     color: "gray",
     bgClass: "bg-gray-100",
     textClass: "text-gray-800",
   },
   NEW: {
-    label: "Má»›i",
+    label: "Mới",
     color: "blue",
     bgClass: "bg-blue-100",
     textClass: "text-blue-800",
   },
   ASSIGNED: {
-    label: "ÄÃ£ phÃ¢n cÃ´ng",
+    label: "Đã phân công",
     color: "yellow",
     bgClass: "bg-yellow-100",
     textClass: "text-yellow-800",
   },
   IN_PROGRESS: {
-    label: "Äang xá»­ lÃ½",
+    label: "Đang xử lý",
     color: "purple",
     bgClass: "bg-purple-100",
     textClass: "text-purple-800",
   },
   NEED_INFO: {
-    label: "Cáº§n thÃ´ng tin",
+    label: "Cần thông tin",
     color: "orange",
     bgClass: "bg-orange-100",
     textClass: "text-orange-800",
   },
   DONE: {
-    label: "HoÃ n thÃ nh",
+    label: "Hoàn thành",
     color: "green",
     bgClass: "bg-green-100",
     textClass: "text-green-800",
   },
   CANCELLED: {
-    label: "ÄÃ£ há»§y",
+    label: "Đã hủy",
     color: "red",
     bgClass: "bg-red-100",
     textClass: "text-red-800",
@@ -116,13 +116,13 @@ export const STATUS_CONFIG = {
 // ============================================================
 export const PRIORITY_CONFIG = {
   LOW: {
-    label: "Tháº¥p",
+    label: "Thấp",
     color: "slate",
     bgClass: "bg-slate-100",
     textClass: "text-slate-700",
   },
   NORMAL: {
-    label: "BÃ¬nh thÆ°á»ng",
+    label: "Bình thường",
     color: "blue",
     bgClass: "bg-blue-100",
     textClass: "text-blue-700",
@@ -134,7 +134,7 @@ export const PRIORITY_CONFIG = {
     textClass: "text-orange-700",
   },
   URGENT: {
-    label: "Kháº©n cáº¥p",
+    label: "Khẩn cấp",
     color: "red",
     bgClass: "bg-red-100",
     textClass: "text-red-700",
@@ -164,7 +164,6 @@ if (DEMO_MODE_ENABLED && IS_PRODUCTION) {
 // ADMIN CONTACT (for whitelist rejection message)
 // ============================================================
 export const ADMIN_EMAIL = "bao.nguyen@eiu.edu.vn";
-
 
 // ============================================================
 // DATABASE RPC FLAGS
