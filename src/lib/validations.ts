@@ -66,7 +66,7 @@ export const createRequestSchema = z.object({
   reason: z
     .string()
     .min(1, "Lý do/Căn cứ không được để trống")
-    .max(MAX_REASON_LENGTH, `Lý do/Căn cứ tối đa ${MAX_REASON_LENGTH} ký tự"),
+    .max(MAX_REASON_LENGTH, `Lý do/Căn cứ tối đa ${MAX_REASON_LENGTH} ký tự`),
   priority: prioritySchema.default("NORMAL"),
   items: z
     .array(requestItemSchema)
