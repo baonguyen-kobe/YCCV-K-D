@@ -11,6 +11,7 @@ import {
   MAX_CANCEL_REASON_LENGTH,
   MAX_COMMENT_LENGTH,
   MAX_FILE_SIZE_BYTES,
+  ALLOWED_FILE_TYPES,
 } from "@/lib/constants";
 
 // ============================================================
