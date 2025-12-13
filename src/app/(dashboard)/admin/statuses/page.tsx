@@ -8,14 +8,14 @@ export default async function StatusesPage() {
     return <div className="text-red-600">Lỗi kết nối database</div>;
   }
 
-  const { data: user } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   // Check admin role
   const { data: userRole } = await supabase
     .from("user_profiles")
     .select("role")
-    .eq("id", user.user.id)
+    .eq("id", user.id)
     .single();
 
   if (userRole?.role !== "admin") redirect("/unauthorized");
