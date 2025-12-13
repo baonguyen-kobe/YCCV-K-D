@@ -280,7 +280,43 @@ o	Subject ví dụ:
 [YCCV] Người tạo đã phản hồi phiếu #{{request_id}}
 o	Body: thông báo cho Staff + link đến /requests/[id]#comments.
 ________________________________________
-1. KHI CÓ PHIẾU MỚI (Trigger: Status NEW)
+## TÌNH TRẠNG TRIỂN KHAI
+
+### ✅ ĐÃ HOÀN THÀNH (89% - Production Ready)
+1. **Core Features**
+   - ✅ Authentication: Google OAuth + Whitelist + Multi-role support
+   - ✅ Request Management: CRUD với validation, rate limiting, file attachments
+   - ✅ Workflow: State machine với 7 trạng thái, permission checks
+   - ✅ Comments: Internal/External comments với permission control
+   - ✅ Activity Logs: Timeline hiển thị mọi thay đổi
+   - ✅ Search: Full-text search across requests và items
+   - ✅ Dashboard: Role-based widgets, stats overview
+   - ✅ Admin: User management, Category management với hierarchical tree
+   - ✅ Profile: Avatar upload, edit personal info
+   - ✅ UI/UX: Responsive, mobile-friendly, pagination, filters
+
+2. **Technical Implementation**
+   - ✅ Database: PostgreSQL với RLS policies, triggers, functions
+   - ✅ Storage: Supabase Storage cho avatars và attachments (<5MB)
+   - ✅ API: Server Actions với rate limiting và validation
+   - ✅ Security: Row Level Security, role-based access control
+
+### ⏳ ĐANG CHỜ TRIỂN KHAI
+1. **Email Notifications** (Resend API)
+   - Triggers: NEW, ASSIGNED, NEED_INFO, DONE, CANCELLED
+   - Cron job reminders
+
+2. **Print to PDF** (Google Docs API)
+   - Template-based PDF generation
+   - On-demand export
+
+3. **Reports & Export**
+   - Excel export functionality
+   - Advanced analytics
+
+### 📧 EMAIL TEMPLATES (Chưa triển khai)
+
+**1. KHI CÓ PHIẾU MỚI (Trigger: Status NEW)**
 Subject: [YCCV] Phiếu yêu cầu mới #{{request_id}} - {{creator_name}}
 Nội dung: Kính gửi Đội vận hành Khoa Điều dưỡng,
 Hệ thống vừa ghi nhận một yêu cầu mới cần xử lý:

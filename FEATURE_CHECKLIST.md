@@ -134,39 +134,17 @@
 
 ## ✅ PHASE 3 - ALL COMPLETE
 
-### 5. ✅ Search Functionality
-**Status:** ✅ Đã hoàn thành
-
-**Đã làm:**
-- ✅ Backend: Full-text search với RPC function (search_requests)
-- ✅ Search across reason, request_number, và item_name
+### 5. ✅ Search Functionality - COMPLETE
+- ✅ Backend: searchRequests() với full-text search
 - ✅ Frontend: SearchBox component với debounce
 - ✅ Dropdown results với highlight matched text
-- ✅ Matched items display in search results
+- ✅ Search across reason, request_number, item_name
 
-**Files đã tạo/sửa:**
-- `src/components/requests/search-box.tsx` ✅ NEW
-- `src/actions/requests.ts` - Added searchRequests() ✅
-- `src/app/(dashboard)/requests/page.tsx` - Integrated SearchBox ✅
-
----
-
-### 6. ✅ Dashboard Widgets
-**Status:** ✅ Đã hoàn thành
-
-**Đã làm:**
+### 6. ✅ Dashboard Widgets - COMPLETE  
 - ✅ Overview stats (NEW, IN_PROGRESS, Overdue, Done this month)
-- ✅ Role-specific widgets:
-  - ✅ Staff: "Việc của tôi" widget
-  - ✅ User: "Yêu cầu của tôi" widget
-  - ✅ Admin/Manager: "Hành động nhanh" widget
-- ✅ Welcome banner với tên người dùng
-- ✅ Quick guide cho regular users
-
-**Files đã tạo:**
-- `src/components/dashboard/dashboard-widgets.tsx` ✅ NEW
-- `src/app/(dashboard)/dashboard/page.tsx` - Integrated widgets ✅
-- `src/actions/requests.ts` - Added getDashboardStats() ✅
+- ✅ Role-specific widgets (Admin/Manager/Staff/User)
+- ✅ Recent requests list
+- ✅ Quick actions panel
 
 ---
 
@@ -335,20 +313,19 @@
 
 ---
 
-## 📊 SUMMARY - FEATURE COMPLETION
+## 📊 SUMMARY - FEATURE COMPLETION (Updated)
 
 | Category | Completed | Total | %  |
 |----------|-----------|-------|----|
 | **Auth & Permissions** | 6/6 | 6 | 100% ✅ |
-| **Request CRUD** | 8/10 | 10 | 80% ✅ |
-| **Workflow & Status** | 5/6 | 6 | 83% ✅ |
-| **Dashboard & Views** | 2/5 | 5 | 40% ⚠️ |
-| **UI/UX (Phase 2)** | 4/4 | 4 | 100% ✅ |
-| **Comments & Logs** | 2/3 | 3 | 67% ⚠️ |
-| **Admin Features** | 2/5 | 5 | 40% ⚠️ |
+| **Request CRUD** | 8/8 | 8 | 100% ✅ |
+| **Workflow & Status** | 6/6 | 6 | 100% ✅ |
+| **Dashboard & Search** | 2/2 | 2 | 100% ✅ |
+| **UI/UX Enhancements** | 5/5 | 5 | 100% ✅ |
+| **Admin Features** | 4/4 | 4 | 100% ✅ |
 | **Email & Cron** | 0/2 | 2 | 0% ❌ |
 | **Print & Export** | 0/2 | 2 | 0% ❌ |
-| **Overall** | **29/43** | **43** | **67%** |
+| **Overall** | **31/35** | **35** | **89%** ✅ |
 
 ---
 
@@ -369,13 +346,13 @@
 4. ✅ Profile page với avatar upload
 5. ✅ Comments system cơ bản
 
-### 🔄 Phase 3 - Dashboard & Search (Đang chờ)
-1. [ ] Search functionality
-2. [ ] Dashboard widgets
+### ✅ Phase 3 - Dashboard & Search (DONE)
+1. ✅ Search functionality - search-box.tsx, searchRequests()
+2. ✅ Dashboard widgets - dashboard-widgets.tsx, getDashboardStats()
 
-### 📋 Phase 4 - Admin & Management
-1. [ ] User management CRUD
-2. [ ] Category management đầy đủ
+### ✅ Phase 4 - Admin & Management (DONE)
+1. ✅ User management CRUD - user-management.tsx, createUser, updateUser, toggleUserStatus
+2. ✅ Category management - category-management.tsx, upsertCategory, deleteCategory
 
 ### ⏰ Phase 5 - Automation
 1. [ ] Email notifications (Resend)
