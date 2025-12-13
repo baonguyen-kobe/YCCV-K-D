@@ -798,7 +798,7 @@ export async function updateRequestStatus(
         );
       } else if (newStatus === "CANCELLED") {
         // Notify creator that request is cancelled
-        sendCancelledEmail(emailData, note, user.full_name || user.email).catch((err) =>
+        sendCancelledEmail(emailData, note, user.fullName || user.email).catch((err) =>
           console.error("[EMAIL] Failed to send CANCELLED notification:", err)
         );
       }
