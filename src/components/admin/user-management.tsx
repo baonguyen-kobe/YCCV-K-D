@@ -85,8 +85,9 @@ export function UserManagement({ users, roles, units }: UserManagementProps) {
       return true;
     } catch (error) {
       if (error instanceof z.ZodError) {
+        const zodError = error as z.ZodError<UserFormData>;
         const newErrors: Partial<Record<keyof UserFormData, string>> = {};
-        (error as z.ZodError).errors.forEach((err) => {
+        zodError.errors.forEach((err) => {
           const path = err.path[0] as keyof UserFormData;
           newErrors[path] = err.message;
         });
